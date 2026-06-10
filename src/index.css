@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* Dark theme = the defaults. buddy's own palette — warm-coral signature with a
+   cohesive (non-vendor) accent per CLI. Light theme overrides below. */
+@theme {
+  --color-bg: #0c0b10;
+  --color-surface: #141319;
+  --color-surface-2: #1c1b22;
+  --color-surface-3: #26242e;
+  --color-border: #332f3c;
+  --color-border-soft: #211f28;
+
+  --color-text: #f3f2f7;
+  --color-text-muted: #a8a4b4;
+  --color-text-faint: #716c7e;
+
+  --color-accent: #ff6f52;
+  --color-accent-dim: #c9533a;
+  --color-accent-contrast: #1a0d08;
+  --color-running: #41cf93;
+  --color-danger: #f2604f;
+  --color-warning: #f2b34a;
+  --color-warning-dim: rgba(242, 179, 74, 0.12);
+
+  --color-claude: #ff7a5c;
+  --color-codex: #34c9b5;
+  --color-gemini: #7e93ff;
+  --color-grok: #c08bff;
+  --color-opencode: #f2b34a;
+
+  --grid-dot: rgba(255, 255, 255, 0.025);
+  --atmosphere: rgba(255, 111, 82, 0.1);
+  --shadow-pop: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 24px 70px rgba(0, 0, 0, 0.6);
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #f7f5f2;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1eee9;
+  --color-surface-3: #e6e1da;
+  --color-border: #dcd6cd;
+  --color-border-soft: #ece8e1;
+
+  --color-text: #1c1a23;
+  --color-text-muted: #5d5868;
+  --color-text-faint: #8b8593;
+
+  --color-accent: #e85636;
+  --color-accent-dim: #cf4a2a;
+  --color-accent-contrast: #ffffff;
+  --color-running: #1aa56e;
+  --color-danger: #d23b28;
+  --color-warning: #c2860f;
+  --color-warning-dim: rgba(194, 134, 15, 0.12);
+
+  --color-claude: #e05a3a;
+  --color-codex: #0f9c8c;
+  --color-gemini: #4f66e4;
+  --color-grok: #8a55e6;
+  --color-opencode: #c2860f;
+
+  --grid-dot: rgba(20, 16, 30, 0.045);
+  --atmosphere: rgba(232, 86, 54, 0.1);
+  --shadow-pop: 0 2px 12px rgba(80, 60, 50, 0.12);
+  --shadow-modal: 0 20px 60px rgba(80, 60, 50, 0.18);
+
+  color-scheme: light;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+/* Smoothly cross-fade chrome colors when toggling the theme. */
+aside,
+header,
+button,
+.theme-transition,
+[data-theme] body {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+/* Thin, unobtrusive scrollbars. */
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-surface-3);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-border);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Soft glow behind empty states. */
+.atmosphere {
+  background: radial-gradient(110% 75% at 50% -10%, var(--atmosphere), transparent 55%);
+}
+
+.xterm {
+  height: 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0.18;
+  }
+}
+
+.logo-cursor {
+  animation: blink 1.15s steps(1, end) infinite;
+}
+
+/* Faint blueprint dot-grid used on the sidebar and empty states. */
+.grid-texture {
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
