@@ -120,6 +120,17 @@ impl Db {
         }
     }
 
+    /// Rename a session (the UI lets users retitle tabs; keep history in sync).
+    pub fn rename_session(&self, id: &str, title: &str) -> AppResult<()> {
+        self.lock()?
+            .execute(
+                "UPDATE sessions SET title = ?2 WHERE id = ?1",
+                rusqlite::params![id, title],
+            )
+            .map_err(db_err)?;
+        Ok(())
+    }
+
     pub fn remove_session(&self, id: &str) -> AppResult<()> {
         self.lock()?
             .execute("DELETE FROM sessions WHERE id = ?1", [id])

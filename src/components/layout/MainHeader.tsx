@@ -1,0 +1,195 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  IconClose,
+  IconCode,
+  IconCollapse,
+  IconExpand,
+  IconSearch,
+  IconSplitDown,
+  IconSplitRight,
+} from "../icons";
+import { AGENT_COLOR, AGENT_LABEL, AGENT_LOGO } from "../../lib/agents";
+import { useApp } from "../../store";
+
+const headerBtn =
+  "rounded-md p-1.5 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]";
+
+/** Double-click-to-rename session title. */
+function SessionTitle({ id, title }: { id: string; title: string }) {
+  const renameSession = useApp((s) => s.renameSession);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(title);
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing, title]);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onDoubleClick={() => setEditing(true)}
+        title="Double-click to rename"
+        className="cursor-text truncate text-[13px] font-medium"
+      >
+        {title}
+      </button>
+    );
+  }
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        renameSession(id, draft);
+        setEditing(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          renameSession(id, draft);
+          setEditing(false);
+        } else if (e.key === "Escape") {
+          setEditing(false);
+        }
+      }}
+      className="w-48 rounded-md border border-[var(--color-accent-dim)] bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[13px] font-medium outline-none"
+    />
+  );
+}
+
+export function MainHeader() {
+  const sessions = useApp((s) => s.sessions);
+  const activeId = useApp((s) => s.activeId);
+  const layout = useApp((s) => s.layout);
+  const zoomedId = useApp((s) => s.zoomedId);
+  const workspace = useApp((s) => s.workspace);
+  const closeWorkspace = useApp((s) => s.closeWorkspace);
+  const openModal = useApp((s) => s.openModal);
+  const toggleZoom = useApp((s) => s.toggleZoom);
+  const searchOpen = useApp((s) => s.searchOpen);
+  const setSearchOpen = useApp((s) => s.setSearchOpen);
+
+  const activeSession = sessions.find((s) => s.id === activeId) ?? null;
+  const ActiveLogo = activeSession ? AGENT_LOGO[activeSession.cli] : null;
+  const isSplit = layout?.kind === "split";
+
+  return (
+    <header className="glass flex h-11 shrink-0 items-center gap-2.5 border-b border-[var(--glass-border)] px-4">
+      {workspace ? (
+        <>
+          <span className="text-[var(--color-accent)]">
+            <IconCode size={15} />
+          </span>
+          <span className="text-[13px] font-medium">{workspace.rootName}</span>
+          <span className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+            editor
+          </span>
+          <span className="ml-auto truncate pl-4 font-mono text-[11px] text-[var(--color-text-faint)]">
+            {workspace.rootPath}
+          </span>
+          <button
+            type="button"
+            onClick={closeWorkspace}
+            title="Close workspace"
+            className={`ml-3 ${headerBtn}`}
+          >
+            <IconClose size={16} />
+          </button>
+        </>
+      ) : activeSession ? (
+        <>
+          <span
+            className={`h-2 w-2 rounded-full ${activeSession.exited ? "" : "dot-breathe"}`}
+            style={{
+              backgroundColor: activeSession.exited
+                ? "var(--color-text-faint)"
+                : AGENT_COLOR[activeSession.cli],
+            }}
+          />
+          <SessionTitle id={activeSession.id} title={activeSession.title} />
+          {ActiveLogo && (
+            <span
+              className="flex items-center gap-1 rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px]"
+              style={{ color: AGENT_COLOR[activeSession.cli] }}
+            >
+              <ActiveLogo size={11} />
+              {AGENT_LABEL[activeSession.cli]}
+            </span>
+          )}
+          {activeSession.model && (
+            <span className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+              {activeSession.model}
+            </span>
+          )}
+          {activeSession.effort && (
+            <span className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+              {activeSession.effort}
+            </span>
+          )}
+          {activeSession.exited && (
+            <span className="text-[11px] text-[var(--color-text-faint)]">exited</span>
+          )}
+          <span className="ml-auto truncate pl-4 font-mono text-[11px] text-[var(--color-text-faint)]">
+            {activeSession.cwd ?? "~"}
+          </span>
+          <div className="flex items-center gap-0.5 pl-3">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(!searchOpen)}
+              title="Find in terminal (⌃⇧F)"
+              className={headerBtn}
+            >
+              <IconSearch size={16} />
+            </button>
+            {(isSplit || zoomedId) && (
+              <button
+                type="button"
+                onClick={toggleZoom}
+                title={zoomedId ? "Restore panes (⌃⇧Z)" : "Zoom pane (⌃⇧Z)"}
+                className={headerBtn}
+              >
+                {zoomedId ? <IconCollapse size={16} /> : <IconExpand size={16} />}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                openModal({
+                  cwd: activeSession.cwd,
+                  splitDir: "row",
+                  splitTarget: activeSession.id,
+                })
+              }
+              title="Split right (new session)"
+              className={headerBtn}
+            >
+              <IconSplitRight size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                openModal({
+                  cwd: activeSession.cwd,
+                  splitDir: "col",
+                  splitTarget: activeSession.id,
+                })
+              }
+              title="Split down (new session)"
+              className={headerBtn}
+            >
+              <IconSplitDown size={16} />
+            </button>
+          </div>
+        </>
+      ) : (
+        <span className="text-[13px] text-[var(--color-text-faint)]">No session</span>
+      )}
+    </header>
+  );
+}

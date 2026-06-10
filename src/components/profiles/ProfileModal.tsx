@@ -15,8 +15,7 @@ export const PROFILE_COLORS = [
   "#8a93a6",
 ];
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-faint)]";
+const labelClass = "mb-1.5 block text-[12px] font-medium text-[var(--color-text-muted)]";
 const fieldClass =
   "w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-2 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]";
 
@@ -61,8 +60,8 @@ export function ProfileModal({ open, profile, onSave, onClose }: ProfileModalPro
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] animate-[fadeIn_120ms_ease-out]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-modal)] animate-[popIn_140ms_ease-out]">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[3px] animate-[fadeIn_120ms_ease-out]" />
+        <Dialog.Content className="glass-strong fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[var(--glass-border)] p-5 animate-[popIn_180ms_var(--ease-natural)]">
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-[15px] font-semibold">
               {profile ? "Edit profile" : "New profile"}

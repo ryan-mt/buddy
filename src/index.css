@@ -1,72 +1,98 @@
 @import "tailwindcss";
 
-/* Dark theme = the defaults. buddy's own palette — warm-coral signature with a
-   cohesive (non-vendor) accent per CLI. Light theme overrides below. */
+/* ---------------------------------------------------------------------------
+   buddy — "basecamp" theme. Warm, organic, calm: espresso & linen surfaces,
+   a moss-green signature accent, soft grain instead of hard grids.
+   Dark is the default; light overrides live under :root[data-theme="light"].
+--------------------------------------------------------------------------- */
 @theme {
-  --color-bg: #0c0b10;
-  --color-surface: #141319;
-  --color-surface-2: #1c1b22;
-  --color-surface-3: #26242e;
-  --color-border: #332f3c;
-  --color-border-soft: #211f28;
+  --color-bg: #15130f;
+  --color-surface: #1c1915;
+  --color-surface-2: #26221b;
+  --color-surface-3: #322c23;
+  --color-border: #3e372c;
+  --color-border-soft: #2a251d;
 
-  --color-text: #f3f2f7;
-  --color-text-muted: #a8a4b4;
-  --color-text-faint: #716c7e;
+  --color-text: #f0eadf;
+  --color-text-muted: #b0a695;
+  --color-text-faint: #7d7464;
 
-  --color-accent: #ff6f52;
-  --color-accent-dim: #c9533a;
-  --color-accent-contrast: #1a0d08;
-  --color-running: #41cf93;
-  --color-danger: #f2604f;
-  --color-warning: #f2b34a;
-  --color-warning-dim: rgba(242, 179, 74, 0.12);
+  --color-accent: #a9bf6b;
+  --color-accent-dim: #87a04c;
+  --color-accent-contrast: #1d2410;
+  --color-running: #7dc99a;
+  --color-danger: #e06a52;
+  --color-warning: #ddab4f;
+  --color-warning-dim: rgba(221, 171, 79, 0.12);
 
-  --color-claude: #ff7a5c;
-  --color-codex: #34c9b5;
-  --color-gemini: #7e93ff;
-  --color-grok: #c08bff;
-  --color-opencode: #f2b34a;
+  --color-claude: #d98e68;
+  --color-codex: #5fb39a;
+  --color-gemini: #8a9ee0;
+  --color-grok: #b395dd;
+  --color-opencode: #d8a953;
 
-  --grid-dot: rgba(255, 255, 255, 0.025);
-  --atmosphere: rgba(255, 111, 82, 0.1);
-  --shadow-pop: 0 2px 12px rgba(0, 0, 0, 0.4);
-  --shadow-modal: 0 24px 70px rgba(0, 0, 0, 0.6);
+  /* Deep warm well behind every terminal pane (TUIs stay dark in both themes). */
+  --color-term-well: #12100c;
+
+  --atmosphere: rgba(169, 191, 107, 0.09);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 14px rgba(10, 8, 4, 0.45);
+  --shadow-modal: 0 24px 70px rgba(10, 8, 4, 0.6);
 
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  /* Organic motion — long settle, no bounce. */
+  --ease-natural: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Liquid-glass tokens (dark defaults; light overrides below). */
+:root {
+  --glass-bg: rgba(28, 25, 21, 0.6);
+  --glass-bg-strong: rgba(28, 25, 21, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --glass-sheen: rgba(255, 255, 255, 0.05);
 }
 
 :root[data-theme="light"] {
-  --color-bg: #f7f5f2;
-  --color-surface: #ffffff;
-  --color-surface-2: #f1eee9;
-  --color-surface-3: #e6e1da;
-  --color-border: #dcd6cd;
-  --color-border-soft: #ece8e1;
+  --glass-bg: rgba(253, 251, 245, 0.55);
+  --glass-bg-strong: rgba(253, 251, 245, 0.82);
+  --glass-border: rgba(60, 48, 30, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-sheen: rgba(255, 255, 255, 0.35);
+}
 
-  --color-text: #1c1a23;
-  --color-text-muted: #5d5868;
-  --color-text-faint: #8b8593;
+:root[data-theme="light"] {
+  --color-bg: #f5f1e8;
+  --color-surface: #fdfbf5;
+  --color-surface-2: #efe9dc;
+  --color-surface-3: #e4dcc9;
+  --color-border: #d6cdb9;
+  --color-border-soft: #e9e2d2;
 
-  --color-accent: #e85636;
-  --color-accent-dim: #cf4a2a;
-  --color-accent-contrast: #ffffff;
-  --color-running: #1aa56e;
-  --color-danger: #d23b28;
-  --color-warning: #c2860f;
-  --color-warning-dim: rgba(194, 134, 15, 0.12);
+  --color-text: #2b2519;
+  --color-text-muted: #6c6353;
+  --color-text-faint: #998f7c;
 
-  --color-claude: #e05a3a;
-  --color-codex: #0f9c8c;
-  --color-gemini: #4f66e4;
-  --color-grok: #8a55e6;
-  --color-opencode: #c2860f;
+  --color-accent: #6d8a2f;
+  --color-accent-dim: #5a7426;
+  --color-accent-contrast: #fbfdf4;
+  --color-running: #2f8f5c;
+  --color-danger: #c2492f;
+  --color-warning: #ad7e15;
+  --color-warning-dim: rgba(173, 126, 21, 0.12);
 
-  --grid-dot: rgba(20, 16, 30, 0.045);
-  --atmosphere: rgba(232, 86, 54, 0.1);
-  --shadow-pop: 0 2px 12px rgba(80, 60, 50, 0.12);
-  --shadow-modal: 0 20px 60px rgba(80, 60, 50, 0.18);
+  --color-claude: #c06a40;
+  --color-codex: #1f8a70;
+  --color-gemini: #5468c9;
+  --color-grok: #8761c4;
+  --color-opencode: #aa7a1c;
+
+  --atmosphere: rgba(109, 138, 47, 0.1);
+  --grain-opacity: 0.06;
+  --shadow-pop: 0 2px 12px rgba(90, 75, 50, 0.14);
+  --shadow-modal: 0 20px 60px rgba(90, 75, 50, 0.2);
 
   color-scheme: light;
 }
@@ -89,6 +115,44 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow: hidden;
+}
+
+/* Ambient color mesh behind the app — what the glass surfaces refract. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -15%;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(70px);
+  background:
+    radial-gradient(38% 34% at 16% 6%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 62%),
+    radial-gradient(32% 38% at 88% 10%, color-mix(in srgb, var(--color-claude) 16%, transparent), transparent 60%),
+    radial-gradient(44% 44% at 72% 94%, color-mix(in srgb, var(--color-gemini) 12%, transparent), transparent 65%);
+}
+
+/* Liquid-glass surfaces: frosted translucency, a specular top edge, soft sheen.
+   Border edges are chosen per component (e.g. border-r on the sidebar) using
+   --glass-border, so .glass itself sets none. */
+.glass {
+  background:
+    linear-gradient(180deg, var(--glass-sheen), transparent 45%),
+    var(--glass-bg);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  backdrop-filter: blur(28px) saturate(1.5);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+/* Heavier glass for floating layers (modals, toasts, popovers). */
+.glass-strong {
+  background:
+    linear-gradient(180deg, var(--glass-sheen), transparent 45%),
+    var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(36px) saturate(1.6);
+  backdrop-filter: blur(36px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--shadow-modal);
 }
 
 /* Smoothly cross-fade chrome colors when toggling the theme. */
@@ -121,9 +185,22 @@ button,
   background: transparent;
 }
 
-/* Soft glow behind empty states. */
+/* Soft sunlight glow behind empty states. */
 .atmosphere {
   background: radial-gradient(110% 75% at 50% -10%, var(--atmosphere), transparent 55%);
+}
+
+/* Organic paper grain (SVG turbulence) — replaces the old blueprint dot-grid. */
+.grain {
+  position: relative;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .xterm {
@@ -165,8 +242,30 @@ button,
   animation: blink 1.15s steps(1, end) infinite;
 }
 
-/* Faint blueprint dot-grid used on the sidebar and empty states. */
-.grid-texture {
-  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
-  background-size: 18px 18px;
+/* Slow breath on live status dots — alive, not alarming. */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+}
+.dot-breathe {
+  animation: breathe 2.8s var(--ease-natural) infinite;
+}
+
+/* Toast slide-up. */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

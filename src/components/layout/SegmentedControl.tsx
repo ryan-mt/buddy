@@ -27,7 +27,7 @@ export function SegmentedControl<T extends string>({
   );
 
   return (
-    <div className="relative flex rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-1">
+    <div className="relative flex rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1">
       <span
         aria-hidden
         className="absolute top-1 bottom-1 left-1 rounded-lg bg-[var(--color-surface-3)] shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition-transform duration-200 ease-out"

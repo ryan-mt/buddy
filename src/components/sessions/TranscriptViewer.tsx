@@ -100,7 +100,7 @@ export function TranscriptViewer({ session, onClose }: TranscriptViewerProps) {
             {entries.map((e, i) => (
               <div key={i} className={`rounded-xl border px-3.5 py-2.5 ${roleStyle(e.role)}`}>
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-faint)]">
+                  <span className="text-[11px] font-medium text-[var(--color-text-faint)]">
                     {ROLE_LABEL[e.role] ?? e.role}
                   </span>
                   {e.tokens ? (

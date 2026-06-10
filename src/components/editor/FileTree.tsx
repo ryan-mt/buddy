@@ -142,7 +142,7 @@ export function FileTree({ rootPath, rootName, activePath, onOpenFile }: FileTre
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1.5 px-2.5 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--color-text-faint)]">
+      <div className="flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-medium text-[var(--color-text-faint)]">
         <IconFolder size={13} className="text-[var(--color-accent)]" />
         <span className="truncate">{rootName}</span>
       </div>

@@ -15,6 +15,17 @@ pub fn list_sessions(state: State<'_, AppState>) -> AppResult<Vec<SessionRecord>
     state.db.list_sessions()
 }
 
+/// Rename a session's title and return the updated list.
+#[tauri::command]
+pub fn rename_session(
+    state: State<'_, AppState>,
+    id: String,
+    title: String,
+) -> AppResult<Vec<SessionRecord>> {
+    state.db.rename_session(&id, &title)?;
+    state.db.list_sessions()
+}
+
 /// Forget a single session in history and return the updated list.
 #[tauri::command]
 pub fn remove_session(state: State<'_, AppState>, id: String) -> AppResult<Vec<SessionRecord>> {

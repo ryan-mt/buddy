@@ -5,14 +5,15 @@ import { CLI_CAPS } from "../lib/agents";
 import type { Settings } from "../lib/settings";
 import type { Theme } from "../lib/theme";
 
-const labelClass =
-  "mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-faint)]";
+const labelClass = "mb-1.5 block text-[12px] font-medium text-[var(--color-text-muted)]";
 const fieldClass =
   "w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-2 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]";
 
 const SHORTCUTS: [string, string][] = [
   ["⌃⇧T", "New session"],
   ["⌃⇧W", "Close session"],
+  ["⌃⇧F", "Find in terminal"],
+  ["⌃⇧Z", "Zoom pane"],
   ["⌃⇧1…9", "Switch session"],
   ["⌃⇧,", "Settings"],
 ];
@@ -45,8 +46,8 @@ export function SettingsModal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] animate-[fadeIn_120ms_ease-out]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-modal)] animate-[popIn_140ms_ease-out]">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[3px] animate-[fadeIn_120ms_ease-out]" />
+        <Dialog.Content className="glass-strong fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[440px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-[var(--glass-border)] p-5 animate-[popIn_180ms_var(--ease-natural)]">
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-[15px] font-semibold">Settings</Dialog.Title>
             <Dialog.Close

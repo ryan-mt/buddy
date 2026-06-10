@@ -99,6 +99,15 @@ impl SessionManager {
         self.get(id)?.kill()
     }
 
+    /// Kill every live session — called on app exit so no CLI process lingers.
+    pub fn kill_all(&self) {
+        if let Ok(map) = self.sessions.lock() {
+            for session in map.values() {
+                let _ = session.kill();
+            }
+        }
+    }
+
     fn get(&self, id: Uuid) -> AppResult<Arc<PtySession>> {
         self.sessions
             .lock()

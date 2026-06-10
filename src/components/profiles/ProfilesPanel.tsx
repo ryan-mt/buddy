@@ -27,8 +27,8 @@ export function ProfilesPanel({
         <IconPlus size={15} /> New profile
       </button>
 
-      <div className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-faint)]">
-        profiles · {profiles.length}
+      <div className="mb-1.5 px-1 text-[11px] font-medium text-[var(--color-text-faint)]">
+        Profiles · {profiles.length}
       </div>
 
       {profiles.length === 0 ? (

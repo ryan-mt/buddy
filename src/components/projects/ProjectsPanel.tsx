@@ -29,8 +29,8 @@ export function ProjectsPanel({
         <IconFolderPlus size={15} /> Add project
       </button>
 
-      <div className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-faint)]">
-        projects · {projects.length}
+      <div className="mb-1.5 px-1 text-[11px] font-medium text-[var(--color-text-faint)]">
+        Projects · {projects.length}
       </div>
 
       {projects.length === 0 ? (

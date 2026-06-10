@@ -77,16 +77,16 @@ export function HistoryPanel({
       {mode === "tracked" ? (
         <>
           <div className="mb-1.5 flex items-center justify-between px-1">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-faint)]">
-              sessions · {sessions.length}
+            <span className="text-[11px] font-medium text-[var(--color-text-faint)]">
+              Sessions · {sessions.length}
             </span>
             {sessions.some((s) => s.status === "exited") && (
               <button
                 type="button"
                 onClick={onClear}
-                className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-faint)] transition hover:text-[var(--color-text)]"
+                className="text-[11px] font-medium text-[var(--color-text-faint)] transition hover:text-[var(--color-text)]"
               >
-                clear
+                Clear
               </button>
             )}
           </div>
@@ -173,8 +173,8 @@ export function HistoryPanel({
         </>
       ) : (
         <>
-          <div className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-faint)]">
-            claude on disk · {disk.length}
+          <div className="mb-1.5 px-1 text-[11px] font-medium text-[var(--color-text-faint)]">
+            Claude on disk · {disk.length}
           </div>
           {diskError ? (
             <p className="px-3 py-6 text-center text-[13px] leading-relaxed text-[var(--color-text-faint)]">

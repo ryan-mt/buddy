@@ -49,11 +49,19 @@ pub fn run() {
             commands::profiles::update_profile,
             commands::profiles::remove_profile,
             commands::sessions::list_sessions,
+            commands::sessions::rename_session,
             commands::sessions::remove_session,
             commands::sessions::clear_sessions,
             commands::sessions::list_resumable,
             commands::sessions::read_transcript,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|app_handle, event| {
+            // Make sure no CLI process lingers after the window is gone.
+            if let tauri::RunEvent::Exit = event {
+                use tauri::Manager;
+                app_handle.state::<AppState>().sessions.kill_all();
+            }
+        });
 }

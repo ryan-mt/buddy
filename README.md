@@ -20,8 +20,14 @@ real PTY terminals via `portable-pty` (ConPTY on Windows) rendered with
 - **Profiles (multiple accounts).** Each profile owns an isolated config
   directory, so you can log in to separate Claude / Codex accounts and run them
   at the same time, with optional default model / base-URL overrides.
-- **Splits.** Tile sessions into flexible split panes; drag dividers to resize.
-  Terminals stay mounted (PTY-safe) and are just repositioned.
+- **Splits & zoom.** Tile sessions into flexible split panes; drag dividers to
+  resize, or zoom one pane full-size (`Ctrl/Cmd+Shift+Z`). Terminals stay
+  mounted (PTY-safe) and are just repositioned.
+- **Find in terminal.** Search the scrollback of any session
+  (`Ctrl/Cmd+Shift+F`, Enter / Shift+Enter to step through matches).
+- **Session care.** Rename sessions in place (double-click the title), and a
+  confirmation guards closing a session that's still running. Failed actions
+  surface as toasts instead of failing silently.
 - **Code editor.** Monaco-based editor with a lazy file tree, tabs, dirty
   tracking, and save (bundled fully offline).
 - **History & resume.** Every session is recorded; resume past Claude sessions
@@ -29,7 +35,9 @@ real PTY terminals via `portable-pty` (ConPTY on Windows) rendered with
   `~/.claude`. Read past transcripts in a viewer with token totals.
 - **Settings & shortcuts.** Light / dark theme, terminal font size, default
   Claude permission / effort. Global shortcuts: `Ctrl/Cmd+Shift+T` new session,
-  `+W` close, `+1…9` switch, `+,` settings.
+  `+W` close, `+F` find, `+Z` zoom pane, `+1…9` switch, `+,` settings.
+- **Liquid-glass UI.** Warm, organic palette with frosted-glass chrome
+  (sidebar, header, dialogs) over an ambient color mesh; live sessions breathe.
 
 ## Develop
 

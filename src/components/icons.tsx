@@ -254,6 +254,36 @@ export function IconSettings({ size = 16, className }: IconProps) {
   );
 }
 
+/** Search: a magnifier. */
+export function IconSearch({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <circle cx="10.5" cy="10.5" r="5.5" />
+      <path d="M14.8 14.8L20 20" />
+    </svg>
+  );
+}
+
+/** Zoom a pane to fill the grid: corner arrows pointing outward. */
+export function IconExpand({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M14 4h6v6M20 4l-6.5 6.5" />
+      <path d="M10 20H4v-6M4 20l6.5-6.5" />
+    </svg>
+  );
+}
+
+/** Restore a zoomed pane: corner arrows pointing inward. */
+export function IconCollapse({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M20 10h-6V4M14 10l6.5-6.5" />
+      <path d="M4 14h6v6M10 14l-6.5 6.5" />
+    </svg>
+  );
+}
+
 // ── Brand marks ───────────────────────────────────────────────────────────────
 // Each CLI's REAL logo, traced from the vendor's official single-color SVG
 // (sources: simple-icons for Claude/Gemini/opencode, OpenAI's published mark,

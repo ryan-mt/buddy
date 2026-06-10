@@ -170,6 +170,9 @@ export const api = {
 
   listSessions: () => invoke<SessionRecord[]>("list_sessions"),
 
+  renameSession: (id: string, title: string) =>
+    invoke<SessionRecord[]>("rename_session", { id, title }),
+
   removeSession: (id: string) => invoke<SessionRecord[]>("remove_session", { id }),
 
   clearSessions: () => invoke<SessionRecord[]>("clear_sessions"),
