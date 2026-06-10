@@ -41,14 +41,19 @@ pub fn read_dir(path: String) -> AppResult<Vec<DirEntry>> {
 /// message the editor can show instead of loading garbage.
 #[tauri::command]
 pub fn read_file(path: String) -> AppResult<String> {
-    let len = std::fs::metadata(&path)?.len();
+    use std::io::Read;
+    // Stat the open handle (not the path) so the size check and the read can't
+    // disagree about which file they're looking at.
+    let mut file = std::fs::File::open(&path)?;
+    let len = file.metadata()?.len();
     if len > MAX_FILE_BYTES {
         return Err(AppError::Other(format!(
             "file too large to open ({} KB)",
             len / 1024
         )));
     }
-    let bytes = std::fs::read(&path)?;
+    let mut bytes = Vec::with_capacity(len as usize);
+    file.read_to_end(&mut bytes)?;
     String::from_utf8(bytes).map_err(|_| AppError::Other("file is not UTF-8 text".into()))
 }
 

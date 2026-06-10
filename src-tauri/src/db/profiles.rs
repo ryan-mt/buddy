@@ -57,13 +57,19 @@ impl Db {
         let dir = self.profiles_dir.join(&id);
         std::fs::create_dir_all(&dir)?;
         let config_dir = dir.to_string_lossy().into_owned();
-        self.lock()?
+        let inserted = self
+            .lock()?
             .execute(
                 "INSERT INTO profiles (id, name, color, config_dir, model, base_url)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                 rusqlite::params![id, name, color, config_dir, model, base_url],
             )
-            .map_err(db_err)?;
+            .map_err(db_err);
+        if let Err(e) = inserted {
+            // Don't leave an orphaned (and still empty) config dir behind.
+            let _ = std::fs::remove_dir(&dir);
+            return Err(e);
+        }
         Ok(())
     }
 
