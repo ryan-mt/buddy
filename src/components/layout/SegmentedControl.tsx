@@ -32,7 +32,10 @@ export function SegmentedControl<T extends string>({
         aria-hidden
         className="absolute top-1 bottom-1 left-1 rounded-lg bg-[var(--color-surface-3)] shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition-transform duration-200 ease-out"
         style={{
-          width: `calc(${100 / segments.length}% - 0.25rem)`,
+          // Exactly one segment wide (container minus its p-1 padding, over n),
+          // so translateX(i * 100%) — relative to the pill's own width — lands
+          // dead-center on every segment instead of drifting per index.
+          width: `calc((100% - 0.5rem) / ${segments.length})`,
           transform: `translateX(${activeIndex * 100}%)`,
         }}
       />
