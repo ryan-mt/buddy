@@ -245,20 +245,15 @@ button,
   animation: blink 1.15s steps(1, end) infinite;
 }
 
-/* Slow breath on live status dots — alive, not alarming. */
-@keyframes breathe {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.55;
-    transform: scale(0.82);
-  }
+/* Status dots stay still — state shows as a static glow, never a blink.
+   Busy: lit halo in the agent's color. Attention: warning ring + halo. */
+.dot-glow {
+  box-shadow: 0 0 6px 1px currentColor;
 }
-.dot-breathe {
-  animation: breathe 2.8s var(--ease-natural) infinite;
+.dot-ring {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-warning) 35%, transparent),
+    0 0 6px 1px var(--color-warning);
 }
 
 /* Toast slide-up. */

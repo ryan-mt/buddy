@@ -1,10 +1,45 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Terminal } from "../terminal/Terminal";
 import { SplitDividers } from "./SplitDividers";
+import { IconRestart } from "../icons";
 import { computeLayout, type Rect } from "../../lib/layout";
+import { registerScrollback, unregisterScrollback } from "../../lib/terminalRegistry";
 import { useApp } from "../../store";
 
 const GUTTER = 6;
+
+/** Keystroke buffers for auto-titling a session from its first typed prompt. */
+const promptBuffers = new Map<string, string>();
+
+function trackFirstPrompt(id: string, data: string) {
+  const s = useApp.getState();
+  const tab = s.sessions.find((t) => t.id === id);
+  if (!tab?.titleAuto) {
+    promptBuffers.delete(id);
+    return;
+  }
+  // Escape sequences mean menu navigation, not prompt typing — start over.
+  if (data.includes("\x1b")) {
+    promptBuffers.set(id, "");
+    return;
+  }
+  let buf = promptBuffers.get(id) ?? "";
+  for (const ch of data) {
+    if (ch === "\r" || ch === "\n") {
+      const title = buf.trim();
+      buf = "";
+      if (title.length >= 4) {
+        promptBuffers.delete(id);
+        s.autoTitle(id, title);
+        return;
+      }
+      continue; // a bare Enter (confirm dialog) — keep waiting for a real line
+    }
+    if (ch === "\x7f" || ch === "\b") buf = buf.slice(0, -1);
+    else if (ch >= " ") buf += ch;
+  }
+  promptBuffers.set(id, buf.slice(0, 200));
+}
 
 /**
  * The split grid of terminal panes. Terminals are mounted once (keyed by
@@ -20,9 +55,10 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
   const searchOpen = useApp((s) => s.searchOpen);
   const setSearchOpen = useApp((s) => s.setSearchOpen);
   const setActive = useApp((s) => s.selectSession);
-  const markExited = useApp((s) => s.markExited);
   const resizeSplit = useApp((s) => s.resizeSplit);
   const fontSize = useApp((s) => s.settings.terminalFontSize);
+  const activity = useApp((s) => s.activity);
+  const broadcast = useApp((s) => s.broadcast);
 
   const boxRef = useRef<HTMLDivElement>(null);
   const [boxSize, setBoxSize] = useState({ w: 0, h: 0 });
@@ -61,6 +97,16 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
           rect = session.id === zoomed ? { x: 0, y: 0, w: boxSize.w, h: boxSize.h } : undefined;
         }
         const focused = isSplit && !zoomed && session.id === activeId;
+        // Ring priority: a pane asking for attention beats the focus ring,
+        // which beats the soft "broadcast is live" tint on every pane.
+        const ring =
+          activity[session.id] === "attention"
+            ? "inset 0 0 0 1px var(--color-warning)"
+            : focused
+              ? "inset 0 0 0 1px var(--color-accent-dim)"
+              : broadcast && isSplit
+                ? "inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent)"
+                : undefined;
         return (
           <div
             key={session.id}
@@ -75,7 +121,7 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
                     top: rect.y,
                     width: rect.w,
                     height: rect.h,
-                    boxShadow: focused ? "inset 0 0 0 1px var(--color-accent-dim)" : undefined,
+                    boxShadow: ring,
                   }
                 : { display: "none" }
             }
@@ -93,9 +139,57 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
                 fontSize={fontSize}
                 searchOpen={searchOpen && session.id === activeId}
                 onCloseSearch={() => setSearchOpen(false)}
-                onExit={() => markExited(session.id)}
+                onExit={(code) => useApp.getState().markExited(session.id, code)}
+                onReady={(ptyId) => useApp.getState().setPtyId(session.id, ptyId)}
+                onOutput={() => useApp.getState().reportOutput(session.id)}
+                onBell={() => useApp.getState().reportBell(session.id)}
+                interceptData={(data) => {
+                  trackFirstPrompt(session.id, data);
+                  const s = useApp.getState();
+                  if (!s.broadcast) return false;
+                  s.broadcastWrite(data);
+                  return true;
+                }}
+                registerScrollback={(read) => {
+                  if (read) registerScrollback(session.id, read);
+                  else unregisterScrollback(session.id);
+                }}
               />
             </div>
+            {session.exited && (
+              // Floating revival bar — the scrollback above stays readable.
+              <div className="glass-strong absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-[var(--glass-border)] py-1.5 pl-3.5 pr-1.5">
+                <span className="whitespace-nowrap text-[12px] text-[var(--color-text-muted)]">
+                  {session.exitCode ? (
+                    <>
+                      exited with code{" "}
+                      <span className="font-mono text-[var(--color-danger)]">
+                        {session.exitCode}
+                      </span>
+                    </>
+                  ) : (
+                    "session ended"
+                  )}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => useApp.getState().relaunch(session.id)}
+                    className="flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-2.5 py-1 text-[12px] font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-110"
+                  >
+                    <IconRestart size={13} />
+                    {session.cli === "claude" ? "Resume" : "Relaunch"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => useApp.getState().closeSession(session.id)}
+                    className="rounded-lg px-2.5 py-1 text-[12px] text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       })}

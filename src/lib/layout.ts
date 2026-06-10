@@ -49,6 +49,13 @@ export function firstLeaf(node: PaneNode | null): string | null {
   return firstLeaf(node.a) ?? firstLeaf(node.b);
 }
 
+/** All leaf session ids in document order. */
+export function leafIds(node: PaneNode | null): string[] {
+  if (!node) return [];
+  if (node.kind === "leaf") return [node.sessionId];
+  return [...leafIds(node.a), ...leafIds(node.b)];
+}
+
 export function hasLeaf(node: PaneNode | null, sessionId: string): boolean {
   if (!node) return false;
   if (node.kind === "leaf") return node.sessionId === sessionId;
@@ -83,6 +90,38 @@ export function removeLeaf(node: PaneNode | null, sessionId: string): PaneNode |
   if (node.kind === "leaf") return node.sessionId === sessionId ? null : node;
   const a = removeLeaf(node.a, sessionId);
   const b = removeLeaf(node.b, sessionId);
+  if (!a) return b;
+  if (!b) return a;
+  return { ...node, a, b };
+}
+
+/** Swap one leaf's session for another, keeping its position (relaunch-in-place). */
+export function replaceLeaf(node: PaneNode, fromId: string, toId: string): PaneNode {
+  if (node.kind === "leaf") {
+    return node.sessionId === fromId ? leaf(toId) : node;
+  }
+  return {
+    ...node,
+    a: replaceLeaf(node.a, fromId, toId),
+    b: replaceLeaf(node.b, fromId, toId),
+  };
+}
+
+/**
+ * Rebuild the tree with every leaf's session id passed through `map`. Leaves
+ * mapped to null are dropped (their split collapses into the sibling).
+ */
+export function mapLeaves(
+  node: PaneNode | null,
+  map: (sessionId: string) => string | null,
+): PaneNode | null {
+  if (!node) return null;
+  if (node.kind === "leaf") {
+    const next = map(node.sessionId);
+    return next ? leaf(next) : null;
+  }
+  const a = mapLeaves(node.a, map);
+  const b = mapLeaves(node.b, map);
   if (!a) return b;
   if (!b) return a;
   return { ...node, a, b };

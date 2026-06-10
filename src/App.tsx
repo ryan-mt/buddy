@@ -5,6 +5,7 @@ import { PaneGrid } from "./components/layout/PaneGrid";
 import { EmptyState } from "./components/layout/EmptyState";
 import { Toasts } from "./components/Toasts";
 import { NewSessionModal } from "./components/sessions/NewSessionModal";
+import { PromptComposer } from "./components/sessions/PromptComposer";
 import { ConfirmCloseDialog } from "./components/sessions/ConfirmCloseDialog";
 import { InstallModal } from "./components/sessions/InstallModal";
 import { TranscriptViewer } from "./components/sessions/TranscriptViewer";
@@ -53,6 +54,10 @@ export default function App() {
         if (s.activeId) s.setSearchOpen(!s.searchOpen);
       } else if (e.code === "KeyZ") {
         s.toggleZoom();
+      } else if (e.code === "KeyB") {
+        s.toggleBroadcast();
+      } else if (e.code === "KeyP") {
+        if (s.sessions.some((t) => !t.exited)) s.setComposerOpen(!s.composerOpen);
       } else if (e.code === "Comma") {
         s.setSettingsOpen(true);
       } else if (/^Digit[1-9]$/.test(e.code)) {
@@ -154,6 +159,7 @@ export default function App() {
       />
 
       <ConfirmCloseDialog />
+      <PromptComposer />
       <Toasts />
     </div>
   );

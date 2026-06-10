@@ -1,18 +1,65 @@
 import { useEffect, useRef, useState } from "react";
+import { save } from "@tauri-apps/plugin-dialog";
 import {
+  IconBroadcast,
   IconClose,
   IconCode,
   IconCollapse,
+  IconDownload,
   IconExpand,
   IconSearch,
+  IconSend,
   IconSplitDown,
   IconSplitRight,
 } from "../icons";
 import { AGENT_COLOR, AGENT_LABEL, AGENT_LOGO } from "../../lib/agents";
-import { useApp } from "../../store";
+import { api } from "../../lib/bindings";
+import { readScrollback } from "../../lib/terminalRegistry";
+import { errorMessage, useApp } from "../../store";
 
 const headerBtn =
   "rounded-md p-1.5 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]";
+
+/** Save the active pane's scrollback as a .txt via the system save dialog. */
+async function exportScrollback(sessionId: string, title: string) {
+  const { pushToast } = useApp.getState();
+  const text = readScrollback(sessionId);
+  if (!text) {
+    pushToast("Nothing to export yet", "error");
+    return;
+  }
+  const safe = title.replace(/[\\/:*?"<>|]/g, "-").trim() || "session";
+  try {
+    const path = await save({
+      defaultPath: `${safe}.txt`,
+      filters: [{ name: "Text", extensions: ["txt"] }],
+    });
+    if (!path) return;
+    await api.writeFile(path, text);
+    pushToast(`Saved ${path}`);
+  } catch (e) {
+    pushToast(errorMessage(e), "error");
+  }
+}
+
+/** Session uptime, ticking every half-minute ("3m", "1h 12m"). */
+function Uptime({ startedAt }: { startedAt: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const mins = Math.floor((Date.now() - startedAt) / 60_000);
+  const label = mins < 1 ? "<1m" : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  return (
+    <span
+      title="Session uptime"
+      className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]"
+    >
+      {label}
+    </span>
+  );
+}
 
 /** Double-click-to-rename session title. */
 function SessionTitle({ id, title }: { id: string; title: string }) {
@@ -74,6 +121,9 @@ export function MainHeader() {
   const toggleZoom = useApp((s) => s.toggleZoom);
   const searchOpen = useApp((s) => s.searchOpen);
   const setSearchOpen = useApp((s) => s.setSearchOpen);
+  const broadcast = useApp((s) => s.broadcast);
+  const toggleBroadcast = useApp((s) => s.toggleBroadcast);
+  const activeActivity = useApp((s) => (s.activeId ? s.activity[s.activeId] : undefined));
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null;
   const ActiveLogo = activeSession ? AGENT_LOGO[activeSession.cli] : null;
@@ -105,11 +155,14 @@ export function MainHeader() {
       ) : activeSession ? (
         <>
           <span
-            className={`h-2 w-2 rounded-full ${activeSession.exited ? "" : "dot-breathe"}`}
+            className={`h-2 w-2 rounded-full ${
+              !activeSession.exited && activeActivity === "busy" ? "dot-glow" : ""
+            }`}
             style={{
               backgroundColor: activeSession.exited
                 ? "var(--color-text-faint)"
                 : AGENT_COLOR[activeSession.cli],
+              color: AGENT_COLOR[activeSession.cli],
             }}
           />
           <SessionTitle id={activeSession.id} title={activeSession.title} />
@@ -132,8 +185,15 @@ export function MainHeader() {
               {activeSession.effort}
             </span>
           )}
-          {activeSession.exited && (
+          {activeSession.startedAt && !activeSession.exited && (
+            <Uptime key={activeSession.id} startedAt={activeSession.startedAt} />
+          )}
+          {activeSession.exited ? (
             <span className="text-[11px] text-[var(--color-text-faint)]">exited</span>
+          ) : (
+            activeActivity === "busy" && (
+              <span className="text-[11px] text-[var(--color-running)]">working…</span>
+            )
           )}
           <span className="ml-auto truncate pl-4 font-mono text-[11px] text-[var(--color-text-faint)]">
             {activeSession.cwd ?? "~"}
@@ -147,6 +207,40 @@ export function MainHeader() {
             >
               <IconSearch size={16} />
             </button>
+            <button
+              type="button"
+              onClick={() => useApp.getState().setComposerOpen(true)}
+              title="Prompt composer (⌃⇧P)"
+              className={headerBtn}
+            >
+              <IconSend size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => void exportScrollback(activeSession.id, activeSession.title)}
+              title="Export scrollback to a text file"
+              className={headerBtn}
+            >
+              <IconDownload size={16} />
+            </button>
+            {isSplit && (
+              <button
+                type="button"
+                onClick={toggleBroadcast}
+                title={
+                  broadcast
+                    ? "Broadcast on — typing reaches every pane (⌃⇧B)"
+                    : "Broadcast keystrokes to all panes (⌃⇧B)"
+                }
+                className={
+                  broadcast
+                    ? "rounded-md bg-[var(--color-surface-2)] p-1.5 text-[var(--color-accent)] transition"
+                    : headerBtn
+                }
+              >
+                <IconBroadcast size={16} />
+              </button>
+            )}
             {(isSplit || zoomedId) && (
               <button
                 type="button"

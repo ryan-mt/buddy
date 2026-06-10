@@ -44,6 +44,16 @@ interface TerminalProps {
   searchOpen?: boolean;
   onCloseSearch?: () => void;
   onExit?: (code: number | null) => void;
+  /** The backend PTY session is live; its id is what Claude can later resume. */
+  onReady?: (ptyId: string) => void;
+  /** Called on every output chunk — drives the live activity status. */
+  onOutput?: () => void;
+  /** The program rang the terminal bell (BEL). */
+  onBell?: () => void;
+  /** Return true to swallow a keystroke that was handled elsewhere (broadcast). */
+  interceptData?: (data: string) => boolean;
+  /** Receives a plain-text scrollback reader on mount, null on dispose. */
+  registerScrollback?: (read: (() => string) | null) => void;
   /** Override how the PTY session is started (defaults to launching `cli`).
    *  Used by the installer to run an install command in the same machinery. */
   start?: (channel: Channel<TerminalMsg>, rows: number, cols: number) => Promise<string>;
@@ -69,6 +79,11 @@ export function Terminal({
   searchOpen = false,
   onCloseSearch,
   onExit,
+  onReady,
+  onOutput,
+  onBell,
+  interceptData,
+  registerScrollback,
   start,
   bootingLabel,
 }: TerminalProps) {
@@ -106,6 +121,16 @@ export function Terminal({
     fitRef.current = fit;
     searchRef.current = search;
 
+    registerScrollback?.(() => {
+      const buf = term.buffer.active;
+      const lines: string[] = [];
+      for (let i = 0; i < buf.length; i++) {
+        lines.push(buf.getLine(i)?.translateToString(true) ?? "");
+      }
+      while (lines.length && lines[lines.length - 1] === "") lines.pop();
+      return lines.join("\n");
+    });
+
     let sessionId: string | null = null;
     let disposed = false;
     let booted = false;
@@ -117,7 +142,10 @@ export function Terminal({
           booted = true;
           setBooting(false);
         }
-        term.write(decodeBase64(msg.data));
+        const bytes = decodeBase64(msg.data);
+        if (onBell && bytes.includes(7)) onBell();
+        onOutput?.();
+        term.write(bytes);
       } else {
         onExit?.(msg.code);
       }
@@ -166,6 +194,7 @@ export function Terminal({
           }
           sessionId = id;
           sessionRef.current = id;
+          onReady?.(id);
           try {
             fit.fit();
           } catch {
@@ -183,6 +212,7 @@ export function Terminal({
     startWhenSized();
 
     const dataSub = term.onData((data) => {
+      if (interceptData?.(data)) return;
       if (sessionId) void api.writeTerminal(sessionId, data);
     });
 
@@ -201,6 +231,7 @@ export function Terminal({
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       dataSub.dispose();
+      registerScrollback?.(null);
       if (sessionId) void api.killTerminal(sessionId).catch(() => {});
       term.dispose();
       termRef.current = null;

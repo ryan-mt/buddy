@@ -264,6 +264,56 @@ export function IconSearch({ size = 16, className }: IconProps) {
   );
 }
 
+/** Send: a paper plane tilted up-right. */
+export function IconSend({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M20 4 9.7 14.3M20 4l-6.3 16-3-6.5L4 10.3z" />
+    </svg>
+  );
+}
+
+/** Formation: a split frame crowned with a small spark — a saved squad. */
+export function IconFormation({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <rect x="4" y="7" width="16" height="13" rx="2" />
+      <path d="M12 7v13M4 14h8" />
+      <path d="M12 2.2l.8 1.6 1.6.8-1.6.8-.8 1.6-.8-1.6-1.6-.8 1.6-.8z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Bookmark: save this snippet for later. */
+export function IconBookmark({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M7 4.5h10V20l-5-3.6L7 20z" />
+    </svg>
+  );
+}
+
+/** Broadcast: a dot radiating arcs both ways — one keystroke, every pane. */
+export function IconBroadcast({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M5.7 18.3a9 9 0 0 1 0-12.6M18.3 5.7a9 9 0 0 1 0 12.6" />
+    </svg>
+  );
+}
+
+/** Restart: a circular arrow chasing its own tail. */
+export function IconRestart({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+      <path d="M19.8 3.5v3.7h-3.7" />
+    </svg>
+  );
+}
+
 /** Zoom a pane to fill the grid: corner arrows pointing outward. */
 export function IconExpand({ size = 16, className }: IconProps) {
   return (

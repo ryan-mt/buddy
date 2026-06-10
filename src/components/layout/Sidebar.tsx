@@ -12,6 +12,7 @@ import {
 import { Logo } from "../Logo";
 import { SegmentedControl } from "./SegmentedControl";
 import { SessionList } from "../sessions/SessionList";
+import { FormationsSection } from "../sessions/FormationsSection";
 import { HistoryPanel } from "../sessions/HistoryPanel";
 import { ProjectsPanel } from "../projects/ProjectsPanel";
 import { ProfilesPanel } from "../profiles/ProfilesPanel";
@@ -109,6 +110,7 @@ export function Sidebar() {
               Sessions · {sessions.length}
             </div>
             <SessionList />
+            <FormationsSection />
           </>
         ) : view === "projects" ? (
           <ProjectsPanel
@@ -141,7 +143,7 @@ export function Sidebar() {
 
       <div className="relative flex items-center gap-2 border-t border-[var(--color-border-soft)] px-4 py-2.5 text-[11px]">
         <span
-          className={`h-1.5 w-1.5 shrink-0 rounded-full ${hasCli ? "dot-breathe" : ""}`}
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
           style={{
             backgroundColor: hasCli ? "var(--color-running)" : "var(--color-text-faint)",
           }}

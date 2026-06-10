@@ -21,14 +21,35 @@ function SessionRow({ session }: { session: SessionTab }) {
     }
   }, [editing]);
 
-  const dotColor = session.exited ? "var(--color-text-faint)" : AGENT_COLOR[session.cli];
+  const activity = useApp((s) => s.activity[session.id]);
+  const queuedCount = useApp((s) => s.queued[session.id]?.length ?? 0);
+
+  // The dot narrates the session's life — statically, no blinking: warning
+  // ring = wants input, lit halo = streaming output, plain = quiet, faint = exited.
+  const dotColor = session.exited
+    ? "var(--color-text-faint)"
+    : activity === "attention"
+      ? "var(--color-warning)"
+      : AGENT_COLOR[session.cli];
+  const dotClass = session.exited
+    ? ""
+    : activity === "attention"
+      ? "dot-ring"
+      : activity === "busy"
+        ? "dot-glow"
+        : "";
 
   return (
     <li>
       <div
         onClick={() => selectSession(session.id)}
+        title={activity === "attention" ? "Needs your input" : undefined}
         className={`group relative flex cursor-pointer items-center gap-2.5 rounded-xl py-2 pl-3 pr-2 transition-colors ${
-          active ? "bg-[var(--color-surface-2)]" : "hover:bg-[var(--color-surface)]"
+          active
+            ? "bg-[var(--color-surface-2)]"
+            : activity === "attention"
+              ? "bg-[var(--color-warning-dim)] hover:bg-[var(--color-surface)]"
+              : "hover:bg-[var(--color-surface)]"
         }`}
       >
         {active && (
@@ -38,8 +59,8 @@ function SessionRow({ session }: { session: SessionTab }) {
           />
         )}
         <span
-          className={`h-2 w-2 shrink-0 rounded-full ${session.exited ? "" : "dot-breathe"}`}
-          style={{ backgroundColor: dotColor }}
+          className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`}
+          style={{ backgroundColor: dotColor, color: dotColor }}
         />
         <div className="min-w-0 flex-1">
           {editing ? (
@@ -81,6 +102,14 @@ function SessionRow({ session }: { session: SessionTab }) {
             </div>
           )}
         </div>
+        {queuedCount > 0 && (
+          <span
+            title={`${queuedCount} prompt${queuedCount > 1 ? "s" : ""} queued`}
+            className="shrink-0 rounded-full bg-[var(--color-surface-3)] px-1.5 font-mono text-[10px] leading-4 text-[var(--color-text-muted)]"
+          >
+            {queuedCount}
+          </span>
+        )}
         <button
           type="button"
           onClick={(e) => {

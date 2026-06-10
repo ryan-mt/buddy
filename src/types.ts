@@ -15,5 +15,16 @@ export interface SessionTab {
   profileId?: string;
   /** When resuming, the prior backend session id to reopen. */
   resumeId?: string;
+  /** Backend PTY session id, set once the PTY is live. What Claude can resume. */
+  ptyId?: string;
   exited: boolean;
+  exitCode?: number | null;
+  /** Title was derived (folder name / "Session N") — the first real prompt
+   *  may replace it. Cleared by any explicit rename. */
+  titleAuto?: boolean;
+  /** Wall-clock launch time, drives the uptime chip. */
+  startedAt?: number;
 }
+
+/** Live read on a session: streaming output, or rang the bell while unfocused. */
+export type ActivityState = "busy" | "attention";
