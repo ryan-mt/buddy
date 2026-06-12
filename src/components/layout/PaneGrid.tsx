@@ -100,10 +100,12 @@ export function PaneGrid({ hidden, dockVisible }: { hidden: boolean; dockVisible
       ref={boxRef}
       className="absolute inset-2"
       // The agent dock floats over the bottom edge — give the panes room so it
-      // never covers a TUI's input line.
+      // never covers a TUI's input line. With no sessions this box is empty
+      // but still painted over the EmptyState — let clicks fall through to it.
       style={{
         ...(dockVisible ? { bottom: 60 } : null),
         ...(hidden ? { display: "none" } : null),
+        ...(sessions.length === 0 ? { pointerEvents: "none" } : null),
       }}
     >
       {sessions.map((session) => {
