@@ -132,13 +132,31 @@ pub async fn git_changes(root: String) -> AppResult<GitChanges> {
     // second NUL-separated origin path); -z gives raw, unquoted paths.
     let status_out = git(
         &root,
-        &["status", "--porcelain=v1", "-b", "-z", "--no-renames", "--untracked-files=all"],
+        &[
+            "status",
+            "--porcelain=v1",
+            "-b",
+            "-z",
+            "--no-renames",
+            "--untracked-files=all",
+        ],
     )
     .await?;
     let (branch, entries) = parse_status(&status_out);
 
     let numstat = if has_head(&root).await {
-        let out = git(&root, &["diff", "HEAD", "--numstat", "-z", "--no-renames", "--no-ext-diff"]).await?;
+        let out = git(
+            &root,
+            &[
+                "diff",
+                "HEAD",
+                "--numstat",
+                "-z",
+                "--no-renames",
+                "--no-ext-diff",
+            ],
+        )
+        .await?;
         parse_numstat(&out)
     } else {
         HashMap::new()
@@ -161,11 +179,22 @@ pub async fn git_changes(root: String) -> AppResult<GitChanges> {
         };
         total_added += added.unwrap_or(0);
         total_removed += removed.unwrap_or(0);
-        files.push(GitChange { path, status: status.to_string(), added, removed, binary });
+        files.push(GitChange {
+            path,
+            status: status.to_string(),
+            added,
+            removed,
+            binary,
+        });
     }
     files.sort_by(|a, b| a.path.cmp(&b.path));
 
-    Ok(GitChanges { branch, files, added: total_added, removed: total_removed })
+    Ok(GitChanges {
+        branch,
+        files,
+        added: total_added,
+        removed: total_removed,
+    })
 }
 
 /// One file's diff as render-ready rows. `untracked` files (or any file in a
@@ -341,7 +370,11 @@ fn parse_hunk_header(header: &str) -> (u32, u32) {
         let mut chars = part.chars();
         let sign = chars.next();
         let rest = chars.as_str();
-        let start: u32 = rest.split(',').next().and_then(|n| n.parse().ok()).unwrap_or(1);
+        let start: u32 = rest
+            .split(',')
+            .next()
+            .and_then(|n| n.parse().ok())
+            .unwrap_or(1);
         match sign {
             Some('-') => old = start.max(1),
             Some('+') => new = start.max(1),
@@ -358,7 +391,10 @@ fn disk_as_added(path: &Path) -> FileDiff {
         return FileDiff::default();
     };
     if bytes[..bytes.len().min(8192)].contains(&0) {
-        return FileDiff { binary: true, ..FileDiff::default() };
+        return FileDiff {
+            binary: true,
+            ..FileDiff::default()
+        };
     }
     let text = String::from_utf8_lossy(&bytes);
     let mut diff = FileDiff::default();
@@ -399,7 +435,11 @@ fn count_file_lines(path: &Path) -> (Option<u64>, bool) {
         return (Some(0), false);
     }
     let newlines = bytes.iter().filter(|&&b| b == b'\n').count() as u64;
-    let lines = if bytes.ends_with(b"\n") { newlines } else { newlines + 1 };
+    let lines = if bytes.ends_with(b"\n") {
+        newlines
+    } else {
+        newlines + 1
+    };
     (Some(lines), false)
 }
 
@@ -409,7 +449,9 @@ mod tests {
 
     #[test]
     fn status_parses_branch_and_entries() {
-        let out = b"## master...origin/master [ahead 1]\0 M src/a.rs\0?? new file.txt\0A  added.rs\0".to_vec();
+        let out =
+            b"## master...origin/master [ahead 1]\0 M src/a.rs\0?? new file.txt\0A  added.rs\0"
+                .to_vec();
         let (branch, entries) = parse_status(&out);
         assert_eq!(branch, "master");
         assert_eq!(

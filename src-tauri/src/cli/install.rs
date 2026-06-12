@@ -80,13 +80,33 @@ fn note(kind: CliKind) -> Option<String> {
     }
 }
 
+/// `raw_command` adjusted for what's actually on this machine: stock Ubuntu
+/// (and other minimal distros) ships without curl — fall back to wget when
+/// only wget is present. All unix commands share the `curl -fsSL <url> | sh`
+/// shape, so a single textual swap is exact.
+fn resolved_command(kind: CliKind) -> Option<String> {
+    let cmd = raw_command(kind)?.to_string();
+    if !is_windows()
+        && cmd.starts_with("curl ")
+        && which::which("curl").is_err()
+        && which::which("wget").is_ok()
+    {
+        return Some(wget_fallback(&cmd));
+    }
+    Some(cmd)
+}
+
+fn wget_fallback(cmd: &str) -> String {
+    cmd.replacen("curl -fsSL", "wget -qO-", 1)
+}
+
 /// Build the install spec for one CLI.
 pub fn install_spec(kind: CliKind) -> InstallSpec {
-    match raw_command(kind) {
+    match resolved_command(kind) {
         Some(cmd) => InstallSpec {
             kind,
             supported: true,
-            command: cmd.to_string(),
+            command: cmd,
             requires_node: requires_node(kind),
             note: note(kind),
         },
@@ -105,10 +125,19 @@ pub fn install_specs() -> Vec<InstallSpec> {
     CliKind::ALL.iter().map(|&k| install_spec(k)).collect()
 }
 
+/// The user's own shell (zsh/fish keep their login PATH that way); csh/tcsh
+/// reject the combined `-lc`, and an unset SHELL falls back to bash.
+fn unix_shell() -> String {
+    match std::env::var("SHELL") {
+        Ok(shell) if !shell.is_empty() && !shell.ends_with("csh") => shell,
+        _ => "bash".to_string(),
+    }
+}
+
 /// The `(program, args)` that run `kind`'s install command inside a PTY on the
 /// current OS. `None` when the CLI cannot be installed here.
 pub fn shell_invocation(kind: CliKind) -> Option<(String, Vec<String>)> {
-    let cmd = raw_command(kind)?;
+    let cmd = resolved_command(kind)?;
     Some(if is_windows() {
         (
             "powershell".to_string(),
@@ -117,11 +146,28 @@ pub fn shell_invocation(kind: CliKind) -> Option<(String, Vec<String>)> {
                 "-ExecutionPolicy".to_string(),
                 "Bypass".to_string(),
                 "-Command".to_string(),
-                cmd.to_string(),
+                cmd,
             ],
         )
     } else {
         // Login shell so PATH picks up nvm/Homebrew node for the npm-based CLIs.
-        ("bash".to_string(), vec!["-lc".to_string(), cmd.to_string()])
+        (unix_shell(), vec!["-lc".to_string(), cmd])
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wget_swap_preserves_the_pipeline() {
+        assert_eq!(
+            wget_fallback("curl -fsSL https://claude.ai/install.sh | bash"),
+            "wget -qO- https://claude.ai/install.sh | bash"
+        );
+        assert_eq!(
+            wget_fallback("curl -fsSL https://chatgpt.com/codex/install.sh | sh"),
+            "wget -qO- https://chatgpt.com/codex/install.sh | sh"
+        );
+    }
 }

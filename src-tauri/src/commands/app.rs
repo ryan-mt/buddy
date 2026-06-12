@@ -6,9 +6,13 @@ use crate::state::AppState;
 use tauri::State;
 
 /// Detect the supported agent CLIs and cache the result in app state.
+/// Async + spawn_blocking: probing five `--version`s would otherwise run on
+/// the main thread and freeze the UI at startup.
 #[tauri::command]
-pub fn list_clis(state: State<'_, AppState>) -> AppResult<Vec<CliInfo>> {
-    let clis = detect::detect_all();
+pub async fn list_clis(state: State<'_, AppState>) -> AppResult<Vec<CliInfo>> {
+    let clis = tauri::async_runtime::spawn_blocking(detect::detect_all)
+        .await
+        .map_err(|e| AppError::Other(format!("CLI detection failed: {e}")))?;
     if let Ok(mut slot) = state.clis.lock() {
         *slot = clis.clone();
     }

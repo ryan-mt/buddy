@@ -55,22 +55,46 @@ pub struct ChatStreamOpts {
 /// `rename_all` only covers variant names; `rename_all_fields` is what puts
 /// the fields themselves (inputTokens, stopReason, …) in camelCase.
 #[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "kind")]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "kind"
+)]
 pub enum ChatMsg {
-    Delta { text: String },
-    Thinking { text: String },
+    Delta {
+        text: String,
+    },
+    Thinking {
+        text: String,
+    },
     /// A tool the agent used this turn ("Read" + "src/app.ts", "Ran" + a
     /// command, …) — rendered as the action timeline above the reply.
     /// Subagent calls carry `parent_id`; TodoWrite carries the plan snapshot.
-    Action { action: ChatAction },
+    Action {
+        action: ChatAction,
+    },
     /// Result of an earlier action, matched by its tool-call id.
-    ActionUpdate { id: String, status: String, output: Option<String> },
+    ActionUpdate {
+        id: String,
+        status: String,
+        output: Option<String>,
+    },
     /// CLI session id to resume with on the next turn. Sent every turn —
     /// whatever id the CLI reports last is the one to keep.
-    Session { id: String },
-    Usage { input_tokens: Option<i64>, output_tokens: Option<i64> },
-    Done { stop_reason: Option<String>, cancelled: bool },
-    Error { message: String },
+    Session {
+        id: String,
+    },
+    Usage {
+        input_tokens: Option<i64>,
+        output_tokens: Option<i64>,
+    },
+    Done {
+        stop_reason: Option<String>,
+        cancelled: bool,
+    },
+    Error {
+        message: String,
+    },
 }
 
 // --- thread persistence ------------------------------------------------------
@@ -165,7 +189,9 @@ pub fn chat_stream(
     let task_id = id.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = stream::run(kind, &bin, &opts, &cancel, &channel).await {
-            let _ = channel.send(ChatMsg::Error { message: e.to_string() });
+            let _ = channel.send(ChatMsg::Error {
+                message: e.to_string(),
+            });
         }
         if let Ok(mut map) = app.state::<AppState>().chat_cancels.lock() {
             map.remove(&task_id);

@@ -45,8 +45,6 @@ pub(crate) async fn run(
     #[cfg(windows)]
     cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
 
-
-
     let mut child = cmd
         .spawn()
         .map_err(|e| AppError::Other(format!("failed to launch {}: {e}", kind.label())))?;
@@ -131,7 +129,10 @@ pub(crate) async fn run(
                 kind.label()
             )));
         }
-        let _ = channel.send(ChatMsg::Done { stop_reason: None, cancelled: false });
+        let _ = channel.send(ChatMsg::Done {
+            stop_reason: None,
+            cancelled: false,
+        });
         return Ok(());
     }
     let tail = stderr_tail.lock().await;

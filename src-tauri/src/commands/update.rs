@@ -46,25 +46,36 @@ fn parse_semver(text: &str) -> Option<(u64, u64, u64)> {
     None
 }
 
-/// `curl` the npm registry for a package's latest version (curl ships with
-/// Windows 10+, macOS, and virtually every Linux). None on any failure —
-/// update checks are best-effort per CLI.
+/// Fetch the npm registry's latest version for a package. curl ships with
+/// Windows 10+ and macOS; minimal Linux installs (stock Ubuntu) often have
+/// only wget, so try both. None on any failure — update checks are
+/// best-effort per CLI.
 async fn fetch_latest(pkg: &str) -> Option<String> {
     let url = format!("https://registry.npmjs.org/{pkg}/latest");
-    let mut cmd = Command::new("curl");
-    cmd.args(["-fsSL", "--max-time", "15", &url])
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true);
-    #[cfg(windows)]
-    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    let out = cmd.output().await.ok()?;
-    if !out.status.success() {
-        return None;
+    let fetchers: [(&str, &[&str]); 2] = [
+        ("curl", &["-fsSL", "--max-time", "15"]),
+        ("wget", &["-qO-", "--timeout=15"]),
+    ];
+    for (program, args) in fetchers {
+        let mut cmd = Command::new(program);
+        cmd.args(args)
+            .arg(&url)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .kill_on_drop(true);
+        #[cfg(windows)]
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        let Ok(out) = cmd.output().await else {
+            continue; // program not installed — try the next one
+        };
+        if !out.status.success() {
+            continue;
+        }
+        let body: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+        return body["version"].as_str().map(String::from);
     }
-    let body: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
-    body["version"].as_str().map(String::from)
+    None
 }
 
 /// Compare every installed CLI against the npm registry. Only installed CLIs
@@ -90,7 +101,12 @@ pub async fn check_cli_updates() -> AppResult<Vec<CliUpdateInfo>> {
             (Some(cur), Some(new)) => new > cur,
             _ => false,
         };
-        out.push(CliUpdateInfo { kind: info.kind, installed, latest, has_update });
+        out.push(CliUpdateInfo {
+            kind: info.kind,
+            installed,
+            latest,
+            has_update,
+        });
     }
     if attempted > 0 && out.is_empty() {
         return Err(AppError::Other(
@@ -104,9 +120,8 @@ pub async fn check_cli_updates() -> AppResult<Vec<CliUpdateInfo>> {
 /// latest release), then re-detect the binary. Returns the refreshed info.
 #[tauri::command]
 pub async fn update_cli(cli: CliKind) -> AppResult<CliInfo> {
-    let (program, args) = install::shell_invocation(cli).ok_or_else(|| {
-        AppError::Other(format!("{} can't be updated on this OS", cli.label()))
-    })?;
+    let (program, args) = install::shell_invocation(cli)
+        .ok_or_else(|| AppError::Other(format!("{} can't be updated on this OS", cli.label())))?;
     let mut cmd = Command::new(&program);
     cmd.args(&args)
         .stdin(Stdio::null())
@@ -123,7 +138,11 @@ pub async fn update_cli(cli: CliKind) -> AppResult<CliInfo> {
     if !out.status.success() {
         // The last few stderr lines usually carry the actual reason.
         let stderr = String::from_utf8_lossy(&out.stderr);
-        let mut lines: Vec<&str> = stderr.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+        let mut lines: Vec<&str> = stderr
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .collect();
         let tail = lines.split_off(lines.len().saturating_sub(3)).join(" · ");
         return Err(AppError::Other(if tail.is_empty() {
             format!("{} update failed", cli.label())
@@ -163,7 +182,10 @@ mod tests {
 
     #[test]
     fn every_cli_but_grok_has_a_registry_feed() {
-        assert_eq!(npm_package(CliKind::Claude), Some("@anthropic-ai/claude-code"));
+        assert_eq!(
+            npm_package(CliKind::Claude),
+            Some("@anthropic-ai/claude-code")
+        );
         assert_eq!(npm_package(CliKind::Codex), Some("@openai/codex"));
         assert_eq!(npm_package(CliKind::Gemini), Some("@google/gemini-cli"));
         assert_eq!(npm_package(CliKind::Opencode), Some("opencode-ai"));

@@ -55,7 +55,7 @@ export function InstallModal({ open: isOpen, clis, onClose, onInstalled }: Insta
   return (
     <Dialog.Root open={isOpen} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[3px] animate-[fadeIn_120ms_ease-out]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_120ms_ease-out]" />
         <Dialog.Content className="glass-strong fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[560px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] p-5 animate-[popIn_180ms_var(--ease-natural)]">
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-[15px] font-semibold">

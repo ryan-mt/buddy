@@ -50,7 +50,7 @@ export function ChatComposer({ draft, setDraft, inputRef }: ChatComposerProps) {
   }, [inputRef]);
 
   return (
-    <div className="glass-strong rounded-[26px] border border-[var(--glass-border)] px-4 py-3 shadow-[var(--shadow-pop)]">
+    <div className="glass-strong rounded-[26px] border border-[var(--glass-border)] px-4 py-3 shadow-[var(--shadow-pop)] transition-colors focus-within:border-[color-mix(in_srgb,var(--color-accent)_50%,var(--glass-border))]">
       <div className="relative">
         <div
           ref={overlayRef}

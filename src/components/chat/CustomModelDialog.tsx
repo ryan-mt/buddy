@@ -20,7 +20,7 @@ export function CustomModelDialog({ provider, onClose }: CustomModelDialogProps)
   return (
     <Dialog.Root open={provider !== null} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[3px] animate-[fadeIn_120ms_ease-out]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_120ms_ease-out]" />
         <Dialog.Content className="glass-strong fixed left-1/2 top-1/2 z-50 w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--glass-border)] p-5 animate-[popIn_180ms_var(--ease-natural)]">
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="text-[14px] font-semibold">

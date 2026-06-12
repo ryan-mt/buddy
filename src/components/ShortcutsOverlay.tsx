@@ -81,7 +81,7 @@ export function ShortcutsOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[3px] animate-[fadeIn_120ms_ease-out]"
+      className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_120ms_ease-out]"
       onPointerDown={close}
     >
       <div

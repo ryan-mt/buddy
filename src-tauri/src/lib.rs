@@ -24,6 +24,20 @@ fn database_path() -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // GUI launches (Finder/Dock, desktop launchers) start with a minimal PATH;
+    // merge the user's login-shell PATH so CLI detection, git, node and every
+    // spawned session see the same tools their terminal does.
+    cli::path_env::bootstrap();
+
+    // WebKitGTK's DMA-BUF renderer blanks the window on NVIDIA's proprietary
+    // driver (and some VMs); disable it unless the user chose explicitly.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
+        && std::path::Path::new("/proc/driver/nvidia").exists()
+    {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     let db = db::Db::open(&database_path()).expect("failed to open database");
 
     tauri::Builder::default()

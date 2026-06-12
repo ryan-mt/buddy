@@ -325,8 +325,11 @@ impl Db {
     pub fn delete_chat_project(&self, id: &str) -> AppResult<()> {
         let mut conn = self.lock()?;
         let tx = conn.transaction().map_err(db_err)?;
-        tx.execute("UPDATE chats SET project_id = NULL WHERE project_id = ?1", [id])
-            .map_err(db_err)?;
+        tx.execute(
+            "UPDATE chats SET project_id = NULL WHERE project_id = ?1",
+            [id],
+        )
+        .map_err(db_err)?;
         tx.execute("DELETE FROM chat_projects WHERE id = ?1", [id])
             .map_err(db_err)?;
         tx.commit().map_err(db_err)
@@ -338,7 +341,8 @@ mod tests {
     use super::*;
 
     fn open_test_db() -> (Db, std::path::PathBuf) {
-        let path = std::env::temp_dir().join(format!("buddy-chats-test-{}.db", uuid::Uuid::new_v4()));
+        let path =
+            std::env::temp_dir().join(format!("buddy-chats-test-{}.db", uuid::Uuid::new_v4()));
         (Db::open(&path).expect("open test db"), path)
     }
 
@@ -382,14 +386,21 @@ mod tests {
                 input_tokens: Some(10),
                 output_tokens: Some(5),
                 actions: vec![
-                    ChatAction { label: "Read".into(), detail: "src/a.rs".into(), ..Default::default() },
+                    ChatAction {
+                        label: "Read".into(),
+                        detail: "src/a.rs".into(),
+                        ..Default::default()
+                    },
                     ChatAction {
                         label: "Spawned agent".into(),
                         detail: "explore".into(),
                         id: Some("tu_1".into()),
                         status: Some("ok".into()),
                         output: Some("done".into()),
-                        todos: Some(vec![TodoItem { content: "step".into(), status: "completed".into() }]),
+                        todos: Some(vec![TodoItem {
+                            content: "step".into(),
+                            status: "completed".into(),
+                        }]),
                         ..Default::default()
                     },
                 ],
@@ -435,14 +446,25 @@ mod tests {
         assert_eq!(projects[0].path, "C:\\work\\research");
         let metas = db.list_chats().unwrap();
         assert_eq!(
-            metas.iter().find(|m| m.id == "c1").unwrap().project_id.as_deref(),
+            metas
+                .iter()
+                .find(|m| m.id == "c1")
+                .unwrap()
+                .project_id
+                .as_deref(),
             Some("p1")
         );
-        assert_eq!(metas.iter().find(|m| m.id == "c2").unwrap().project_id, None);
+        assert_eq!(
+            metas.iter().find(|m| m.id == "c2").unwrap().project_id,
+            None
+        );
 
         // Rename preserves created_at semantics (upsert path).
-        db.save_chat_project(&ChatProject { name: "Research v2".into(), ..project.clone() })
-            .unwrap();
+        db.save_chat_project(&ChatProject {
+            name: "Research v2".into(),
+            ..project.clone()
+        })
+        .unwrap();
         assert_eq!(db.list_chat_projects().unwrap()[0].name, "Research v2");
 
         // Move c2 in, then delete the project: threads survive, ungrouped.

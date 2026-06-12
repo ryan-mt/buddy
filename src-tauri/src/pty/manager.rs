@@ -51,6 +51,12 @@ impl SessionManager {
         for (key, value) in std::env::vars() {
             cmd.env(key, value);
         }
+        // GUI launches on macOS/Linux may carry no TERM at all; the CLIs render
+        // for a real terminal (xterm.js up front), so claim one when unset.
+        #[cfg(unix)]
+        if std::env::var_os("TERM").is_none() {
+            cmd.env("TERM", "xterm-256color");
+        }
         for (key, value) in &spec.env {
             cmd.env(key, value);
         }
@@ -158,7 +164,10 @@ fn spawn_waiter<S>(
     S: FnMut(TerminalMsg) -> bool + Send + 'static,
 {
     std::thread::spawn(move || {
-        let code = child.wait().ok().map(|status| i64::from(status.exit_code()));
+        let code = child
+            .wait()
+            .ok()
+            .map(|status| i64::from(status.exit_code()));
         sink(TerminalMsg::Exit { code });
         if let Ok(mut map) = sessions.lock() {
             map.remove(&id);

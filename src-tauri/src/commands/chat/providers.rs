@@ -53,7 +53,7 @@ pub(crate) fn cli_args(kind: CliKind, opts: &ChatStreamOpts) -> Vec<String> {
                 // ultracode settings flag (workflow orchestration opt-in).
                 if effort == "ultracode" {
                     args.extend(["--effort".into(), "xhigh".into()]);
-                    args.extend(["--settings".into(), r#"{"ultracode":true}"#.into()]);
+                    args.extend(["--settings".into(), ultracode_settings()]);
                 } else {
                     args.extend(["--effort".into(), effort.into()]);
                 }
@@ -73,7 +73,11 @@ pub(crate) fn cli_args(kind: CliKind, opts: &ChatStreamOpts) -> Vec<String> {
                 // The resume subcommand has no --sandbox flag; the session
                 // keeps the policy it was created with. Full access maps to
                 // workspace-write: edits + commands inside the folder.
-                let sandbox = if access == "full" { "workspace-write" } else { "read-only" };
+                let sandbox = if access == "full" {
+                    "workspace-write"
+                } else {
+                    "read-only"
+                };
                 args.extend(["--sandbox".into(), sandbox.into()]);
             }
             if let Some(model) = model {
@@ -88,6 +92,21 @@ pub(crate) fn cli_args(kind: CliKind, opts: &ChatStreamOpts) -> Vec<String> {
         }
         // Chat only fronts the two CLIs above; `cli_kind` gates earlier.
         _ => Vec::new(),
+    }
+}
+
+/// `--settings` accepts inline JSON or a file path. We pass a file path:
+/// inline JSON carries `"` characters, which Rust refuses to pass to `.cmd`
+/// shims on Windows (the CVE-2024-24576 batch-argument hardening) — and npm
+/// installs of Claude Code are exactly such shims. Falls back to inline JSON
+/// if the file can't be written.
+fn ultracode_settings() -> String {
+    let json = r#"{"ultracode":true}"#;
+    let path = crate::data_dir().join("ultracode-settings.json");
+    if std::fs::write(&path, json).is_ok() {
+        path.to_string_lossy().into_owned()
+    } else {
+        json.to_string()
     }
 }
 
@@ -128,9 +147,11 @@ impl Parser {
         };
         match self {
             Parser::Claude { stop_reason } => claude_event(&event, stop_reason, channel),
-            Parser::Codex { agent_sent, reasoning_sent, announced } => {
-                codex_event(&event, agent_sent, reasoning_sent, announced, channel)
-            }
+            Parser::Codex {
+                agent_sent,
+                reasoning_sent,
+                announced,
+            } => codex_event(&event, agent_sent, reasoning_sent, announced, channel),
         }
     }
 }
@@ -180,7 +201,9 @@ fn claude_event(
                     if block["type"].as_str() != Some("tool_result") {
                         continue;
                     }
-                    let Some(id) = block["tool_use_id"].as_str() else { continue };
+                    let Some(id) = block["tool_use_id"].as_str() else {
+                        continue;
+                    };
                     let is_error = block["is_error"].as_bool().unwrap_or(false);
                     let _ = channel.send(ChatMsg::ActionUpdate {
                         id: id.to_string(),
@@ -203,14 +226,18 @@ fn claude_event(
                 Some("content_block_delta") => match inner["delta"]["type"].as_str() {
                     Some("text_delta") => {
                         if let Some(text) = inner["delta"]["text"].as_str() {
-                            let _ = channel.send(ChatMsg::Delta { text: text.to_string() });
+                            let _ = channel.send(ChatMsg::Delta {
+                                text: text.to_string(),
+                            });
                         }
                     }
                     Some("thinking_delta") => {
                         // Empty thinking text = display "omitted"; nothing to show.
                         if let Some(text) = inner["delta"]["thinking"].as_str() {
                             if !text.is_empty() {
-                                let _ = channel.send(ChatMsg::Thinking { text: text.to_string() });
+                                let _ = channel.send(ChatMsg::Thinking {
+                                    text: text.to_string(),
+                                });
                             }
                         }
                     }
@@ -229,10 +256,14 @@ fn claude_event(
         Some("result") => {
             let usage = &event["usage"];
             if usage.is_object() {
-                let input = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]
-                    .iter()
-                    .filter_map(|k| usage[k].as_i64())
-                    .sum::<i64>();
+                let input = [
+                    "input_tokens",
+                    "cache_read_input_tokens",
+                    "cache_creation_input_tokens",
+                ]
+                .iter()
+                .filter_map(|k| usage[k].as_i64())
+                .sum::<i64>();
                 let _ = channel.send(ChatMsg::Usage {
                     input_tokens: Some(input),
                     output_tokens: usage["output_tokens"].as_i64(),
@@ -247,7 +278,10 @@ fn claude_event(
                     .unwrap_or_else(|| "Claude Code reported an error".to_string());
                 let _ = channel.send(ChatMsg::Error { message });
             } else {
-                let _ = channel.send(ChatMsg::Done { stop_reason: stop_reason.clone(), cancelled: false });
+                let _ = channel.send(ChatMsg::Done {
+                    stop_reason: stop_reason.clone(),
+                    cancelled: false,
+                });
             }
             true
         }
@@ -311,10 +345,16 @@ fn codex_event(
                                 label,
                                 detail,
                                 id,
-                                status: Some(
-                                    if completed { codex_item_status(item_type, item) } else { "running".into() },
-                                ),
-                                output: if completed { codex_item_output(item_type, item) } else { None },
+                                status: Some(if completed {
+                                    codex_item_status(item_type, item)
+                                } else {
+                                    "running".into()
+                                }),
+                                output: if completed {
+                                    codex_item_output(item_type, item)
+                                } else {
+                                    None
+                                },
                                 ..Default::default()
                             },
                         });
@@ -331,7 +371,10 @@ fn codex_event(
                     output_tokens: usage["output_tokens"].as_i64(),
                 });
             }
-            let _ = channel.send(ChatMsg::Done { stop_reason: None, cancelled: false });
+            let _ = channel.send(ChatMsg::Done {
+                stop_reason: None,
+                cancelled: false,
+            });
             true
         }
         Some("turn.failed") => {
@@ -345,7 +388,10 @@ fn codex_event(
         // Fatal in exec mode (observed: auth failures) — turn.failed may not
         // follow, so treat it as terminal.
         Some("error") => {
-            let message = event["message"].as_str().unwrap_or("Codex error").to_string();
+            let message = event["message"]
+                .as_str()
+                .unwrap_or("Codex error")
+                .to_string();
             let _ = channel.send(ChatMsg::Error { message });
             true
         }
@@ -356,17 +402,31 @@ fn codex_event(
 /// Map a Claude tool call to a timeline row: a verb plus a compact target.
 /// TodoWrite also carries its plan snapshot for the checklist card.
 fn claude_tool_action(name: &str, input: &Value) -> ChatAction {
-    let file = || input["file_path"].as_str().map(short_path).unwrap_or_default();
+    let file = || {
+        input["file_path"]
+            .as_str()
+            .map(short_path)
+            .unwrap_or_default()
+    };
     let mut todos: Option<Vec<TodoItem>> = None;
     let (label, detail): (&str, String) = match name {
         "Read" => ("Read", file()),
         "Edit" | "MultiEdit" => ("Edited", file()),
         "Write" | "NotebookEdit" => ("Wrote", file()),
         "Bash" | "PowerShell" => ("Ran", clip(input["command"].as_str().unwrap_or(""), 80)),
-        "Glob" => ("Globbed", input["pattern"].as_str().unwrap_or("").to_string()),
-        "Grep" => ("Searched", clip(input["pattern"].as_str().unwrap_or(""), 60)),
+        "Glob" => (
+            "Globbed",
+            input["pattern"].as_str().unwrap_or("").to_string(),
+        ),
+        "Grep" => (
+            "Searched",
+            clip(input["pattern"].as_str().unwrap_or(""), 60),
+        ),
         "WebFetch" => ("Fetched", clip(input["url"].as_str().unwrap_or(""), 80)),
-        "WebSearch" => ("Searched web", clip(input["query"].as_str().unwrap_or(""), 60)),
+        "WebSearch" => (
+            "Searched web",
+            clip(input["query"].as_str().unwrap_or(""), 60),
+        ),
         "TodoWrite" => {
             todos = input["todos"].as_array().map(|items| {
                 items
@@ -391,9 +451,18 @@ fn claude_tool_action(name: &str, input: &Value) -> ChatAction {
             };
             ("Spawned agent", clip(&detail, 70))
         }
-        "Skill" => ("Ran skill", input["skill"].as_str().unwrap_or("").to_string()),
-        "SlashCommand" => ("Ran command", clip(input["command"].as_str().unwrap_or(""), 60)),
-        "ToolSearch" => ("Searched tools", clip(input["query"].as_str().unwrap_or(""), 60)),
+        "Skill" => (
+            "Ran skill",
+            input["skill"].as_str().unwrap_or("").to_string(),
+        ),
+        "SlashCommand" => (
+            "Ran command",
+            clip(input["command"].as_str().unwrap_or(""), 60),
+        ),
+        "ToolSearch" => (
+            "Searched tools",
+            clip(input["query"].as_str().unwrap_or(""), 60),
+        ),
         "ExitPlanMode" => ("Presented plan", String::new()),
         "EnterPlanMode" => ("Entered plan mode", String::new()),
         // MCP tools come through as mcp__server__tool.
@@ -424,7 +493,11 @@ fn tool_result_text(content: &Value) -> Option<String> {
         _ => return None,
     };
     let clipped = clip_block(&text, 8, 600);
-    if clipped.is_empty() { None } else { Some(clipped) }
+    if clipped.is_empty() {
+        None
+    } else {
+        Some(clipped)
+    }
 }
 
 /// "ok"/"error" for a completed Codex item.
@@ -433,7 +506,11 @@ fn codex_item_status(item_type: Option<&str>, item: &Value) -> String {
         Some("command_execution") => item["exit_code"].as_i64().is_some_and(|c| c != 0),
         _ => item["status"].as_str() == Some("failed"),
     };
-    if failed { "error".into() } else { "ok".into() }
+    if failed {
+        "error".into()
+    } else {
+        "ok".into()
+    }
 }
 
 /// Short output preview for a completed Codex item (command output today).
@@ -442,7 +519,11 @@ fn codex_item_output(item_type: Option<&str>, item: &Value) -> Option<String> {
         Some("command_execution") => {
             let out = item["aggregated_output"].as_str().unwrap_or("");
             let clipped = clip_block(out, 8, 600);
-            if clipped.is_empty() { None } else { Some(clipped) }
+            if clipped.is_empty() {
+                None
+            } else {
+                Some(clipped)
+            }
         }
         _ => None,
     }
@@ -552,9 +633,13 @@ mod tests {
             access: None,
         };
         let args = cli_args(CliKind::Claude, &opts);
-        assert!(args.windows(2).any(|w| w[0] == "--tools" && w[1].is_empty()));
+        assert!(args
+            .windows(2)
+            .any(|w| w[0] == "--tools" && w[1].is_empty()));
         assert!(args.windows(2).any(|w| w[0] == "--resume" && w[1] == "abc"));
-        assert!(args.windows(2).any(|w| w[0] == "--effort" && w[1] == "high"));
+        assert!(args
+            .windows(2)
+            .any(|w| w[0] == "--effort" && w[1] == "high"));
         assert!(args.contains(&"--include-partial-messages".to_string()));
     }
 
@@ -570,7 +655,9 @@ mod tests {
             access: None,
         };
         let args = cli_args(CliKind::Claude, &opts);
-        assert!(args.windows(2).any(|w| w[0] == "--tools" && w[1] == "Read,Glob,Grep"));
+        assert!(args
+            .windows(2)
+            .any(|w| w[0] == "--tools" && w[1] == "Read,Glob,Grep"));
     }
 
     #[test]
@@ -585,10 +672,19 @@ mod tests {
             access: None,
         };
         let args = cli_args(CliKind::Claude, &opts);
-        assert!(args.windows(2).any(|w| w[0] == "--effort" && w[1] == "xhigh"));
         assert!(args
             .windows(2)
-            .any(|w| w[0] == "--settings" && w[1] == r#"{"ultracode":true}"#));
+            .any(|w| w[0] == "--effort" && w[1] == "xhigh"));
+        // The settings flag points at a quote-free file path (inline JSON
+        // can't be passed through Windows .cmd shims), holding the opt-in.
+        let settings = args
+            .windows(2)
+            .find(|w| w[0] == "--settings")
+            .map(|w| w[1].clone())
+            .expect("--settings present");
+        assert!(settings.ends_with("ultracode-settings.json"), "{settings}");
+        let content = std::fs::read_to_string(&settings).expect("settings file written");
+        assert_eq!(content, r#"{"ultracode":true}"#);
         assert!(!args.contains(&"ultracode".to_string()));
     }
 
@@ -623,7 +719,9 @@ mod tests {
             access: None,
         };
         let args = cli_args(CliKind::Codex, &opts);
-        assert!(args.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"));
+        assert!(args
+            .windows(2)
+            .any(|w| w[0] == "--sandbox" && w[1] == "read-only"));
         assert!(args.contains(&"model_reasoning_effort=high".to_string()));
     }
 
@@ -657,7 +755,9 @@ mod tests {
             access: Some("full".into()),
         };
         let args = cli_args(CliKind::Codex, &opts);
-        assert!(args.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "workspace-write"));
+        assert!(args
+            .windows(2)
+            .any(|w| w[0] == "--sandbox" && w[1] == "workspace-write"));
     }
 
     #[test]
@@ -672,7 +772,9 @@ mod tests {
             access: Some("read".into()),
         };
         let args = cli_args(CliKind::Claude, &opts);
-        assert!(args.windows(2).any(|w| w[0] == "--tools" && w[1] == "Read,Glob,Grep"));
+        assert!(args
+            .windows(2)
+            .any(|w| w[0] == "--tools" && w[1] == "Read,Glob,Grep"));
     }
 
     fn label_detail(action: &ChatAction) -> (String, String) {
@@ -722,23 +824,35 @@ mod tests {
         assert_eq!(todos[1].status, "in_progress");
 
         assert_eq!(
-            label_detail(&claude_tool_action("mcp__github__create_issue", &Value::Null)),
+            label_detail(&claude_tool_action(
+                "mcp__github__create_issue",
+                &Value::Null
+            )),
             ("Used".into(), "github · create_issue".into())
         );
         assert_eq!(
-            label_detail(&claude_tool_action("Skill", &serde_json::json!({ "skill": "review" }))),
+            label_detail(&claude_tool_action(
+                "Skill",
+                &serde_json::json!({ "skill": "review" })
+            )),
             ("Ran skill".into(), "review".into())
         );
     }
 
     #[test]
     fn tool_result_text_flattens_blocks_and_clips() {
-        assert_eq!(tool_result_text(&serde_json::json!("ok")).as_deref(), Some("ok"));
+        assert_eq!(
+            tool_result_text(&serde_json::json!("ok")).as_deref(),
+            Some("ok")
+        );
         let blocks = serde_json::json!([
             { "type": "text", "text": "line one" },
             { "type": "text", "text": "line two" },
         ]);
-        assert_eq!(tool_result_text(&blocks).as_deref(), Some("line one\nline two"));
+        assert_eq!(
+            tool_result_text(&blocks).as_deref(),
+            Some("line one\nline two")
+        );
         assert_eq!(tool_result_text(&serde_json::json!("")), None);
         assert_eq!(tool_result_text(&Value::Null), None);
         let long = "x\n".repeat(20);
@@ -754,7 +868,8 @@ mod tests {
             codex_item_action(Some("command_execution"), &cmd),
             Some(("Ran".into(), "cargo check".into()))
         );
-        let patch = serde_json::json!({ "changes": [{ "path": "src/a.rs" }, { "path": "src/b.rs" }] });
+        let patch =
+            serde_json::json!({ "changes": [{ "path": "src/a.rs" }, { "path": "src/b.rs" }] });
         assert_eq!(
             codex_item_action(Some("file_change"), &patch),
             Some(("Edited".into(), "src/a.rs, src/b.rs".into()))
@@ -779,7 +894,10 @@ mod tests {
         })
         .unwrap();
         assert_eq!(usage["kind"], "usage");
-        assert_eq!(usage["inputTokens"], 1, "fields must reach the frontend camelCased: {usage}");
+        assert_eq!(
+            usage["inputTokens"], 1,
+            "fields must reach the frontend camelCased: {usage}"
+        );
 
         let update = serde_json::to_value(ChatMsg::ActionUpdate {
             id: "tu_1".into(),

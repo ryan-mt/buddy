@@ -254,7 +254,7 @@ export function SettingsModal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[3px] animate-[fadeIn_120ms_ease-out]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_120ms_ease-out]" />
         <Dialog.Content className="glass-strong fixed left-1/2 top-1/2 z-50 flex h-[520px] max-h-[88vh] w-[640px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-[var(--glass-border)] animate-[popIn_180ms_var(--ease-natural)]">
           {/* Nav rail */}
           <div className="flex w-[164px] shrink-0 flex-col border-r border-[var(--color-border-soft)] bg-[var(--color-surface-2)]/40 p-3">

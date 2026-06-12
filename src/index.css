@@ -49,13 +49,16 @@
   --ease-natural: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Liquid-glass tokens (dark defaults; light overrides below). */
+/* Liquid-glass tokens (dark defaults; light overrides below).
+   --glass-lift brightens what shows through the pane — strong on dark themes
+   (the glass glows), gentle on light ones (already near-white behind). */
 :root {
   --glass-bg: rgba(28, 25, 21, 0.6);
   --glass-bg-strong: rgba(28, 25, 21, 0.78);
   --glass-border: rgba(255, 255, 255, 0.09);
   --glass-highlight: rgba(255, 255, 255, 0.12);
   --glass-sheen: rgba(255, 255, 255, 0.05);
+  --glass-lift: 1.06;
 }
 
 :root[data-theme="light"] {
@@ -64,6 +67,7 @@
   --glass-border: rgba(60, 48, 30, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.7);
   --glass-sheen: rgba(255, 255, 255, 0.35);
+  --glass-lift: 1.02;
 }
 
 :root[data-theme="light"] {
@@ -138,6 +142,7 @@
   --glass-border: rgba(120, 50, 70, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.7);
   --glass-sheen: rgba(255, 255, 255, 0.4);
+  --glass-lift: 1.02;
 
   color-scheme: light;
 }
@@ -180,6 +185,7 @@
   --glass-border: rgba(70, 55, 120, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.7);
   --glass-sheen: rgba(255, 255, 255, 0.4);
+  --glass-lift: 1.02;
 
   color-scheme: light;
 }
@@ -222,6 +228,7 @@
   --glass-border: rgba(40, 90, 70, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.7);
   --glass-sheen: rgba(255, 255, 255, 0.4);
+  --glass-lift: 1.02;
 
   color-scheme: light;
 }
@@ -264,6 +271,7 @@
   --glass-border: rgba(140, 80, 45, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.7);
   --glass-sheen: rgba(255, 255, 255, 0.4);
+  --glass-lift: 1.02;
 
   color-scheme: light;
 }
@@ -387,31 +395,59 @@ body::before {
     radial-gradient(36% 40% at 6% 86%, color-mix(in srgb, var(--color-codex) 10%, transparent), transparent 60%);
 }
 
-/* Liquid-glass surfaces: frosted translucency, a specular top edge, soft sheen.
+/* Liquid-glass surfaces — Tahoe-style lensing built from four cues:
+   1. a bright specular rim on the top edge (where the light hits),
+   2. a faint refraction ring tracing all four edges (light bending inside),
+   3. an inner shade pooling at the bottom (the pane's thickness),
+   4. saturate + brightness on the backdrop, so colors glow through the pane.
    Border edges are chosen per component (e.g. border-r on the sidebar) using
-   --glass-border, so .glass itself sets none. */
+   --glass-border, so .glass itself sets none. Blur radii stay moderate —
+   WebKitGTK pays per blurred pixel, and the ring/depth cues carry the look. */
 .glass {
   background:
     linear-gradient(180deg, var(--glass-sheen), transparent 45%),
     var(--glass-bg);
-  -webkit-backdrop-filter: blur(28px) saturate(1.5);
-  backdrop-filter: blur(28px) saturate(1.5);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  -webkit-backdrop-filter: blur(24px) saturate(1.7) brightness(var(--glass-lift));
+  backdrop-filter: blur(24px) saturate(1.7) brightness(var(--glass-lift));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 1px color-mix(in srgb, var(--glass-highlight) 45%, transparent),
+    inset 0 -12px 24px -16px color-mix(in srgb, var(--color-bg) 55%, transparent);
 }
 
-/* Heavier glass for floating layers (modals, toasts, popovers). */
+/* Heavier glass for floating layers (modals, toasts, popovers): deeper blur,
+   the same lensing, plus a tight contact shadow under the themed float. */
 .glass-strong {
   background:
     linear-gradient(180deg, var(--glass-sheen), transparent 45%),
     var(--glass-bg-strong);
-  -webkit-backdrop-filter: blur(36px) saturate(1.6);
-  backdrop-filter: blur(36px) saturate(1.6);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(var(--glass-lift));
+  backdrop-filter: blur(32px) saturate(1.8) brightness(var(--glass-lift));
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 1px color-mix(in srgb, var(--glass-highlight) 50%, transparent),
+    inset 0 -14px 28px -18px color-mix(in srgb, var(--color-bg) 60%, transparent),
+    0 2px 6px -2px color-mix(in srgb, var(--color-bg) 70%, transparent),
     var(--shadow-modal);
 }
 
-/* Smoothly cross-fade chrome colors when toggling the theme. */
+/* Webviews without backdrop-filter (older WebKitGTK, compositing off): fall
+   back to near-solid surfaces so text never floats on unblurred noise. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background:
+      linear-gradient(180deg, var(--glass-sheen), transparent 45%),
+      color-mix(in srgb, var(--color-surface) 94%, transparent);
+  }
+  .glass-strong {
+    background:
+      linear-gradient(180deg, var(--glass-sheen), transparent 45%),
+      var(--color-surface);
+  }
+}
+
+/* Smoothly cross-fade chrome colors when toggling the theme (box-shadow
+   included so the glass edge highlights melt between themes too). */
 aside,
 header,
 button,
@@ -421,6 +457,7 @@ button,
     background-color 180ms ease,
     border-color 180ms ease,
     color 180ms ease,
+    box-shadow 180ms ease,
     transform 130ms var(--ease-natural);
 }
 
@@ -429,13 +466,18 @@ button:not(:disabled):active {
   transform: scale(0.98);
 }
 
-/* Keyboard focus is always visible (never on the terminal's hidden textarea). */
-:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 65%, transparent);
-  outline-offset: 1px;
-}
-.xterm textarea:focus-visible {
-  outline: none;
+/* Keyboard focus is always visible (never on the terminal's hidden textarea).
+   Lives in the base layer so Tailwind's `outline-none` utility (a later layer)
+   can opt fields out — text inputs style their container/border on focus
+   instead, and would otherwise show a raw rectangle inside rounded chrome. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 65%, transparent);
+    outline-offset: 1px;
+  }
+  .xterm textarea:focus-visible {
+    outline: none;
+  }
 }
 
 /* Cursor-tracked sheen on glass cards — the light bends where you point.

@@ -3,6 +3,7 @@
 pub mod detect;
 pub mod env;
 pub mod install;
+pub mod path_env;
 pub mod projects_fs;
 
 use serde::{Deserialize, Serialize};

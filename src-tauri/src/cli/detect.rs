@@ -4,9 +4,26 @@ use crate::cli::{CliInfo, CliKind};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Detect every known CLI.
+/// Detect every known CLI. Probes run in parallel — npm `.cmd` shims pay a
+/// full node startup per `--version`, which adds up done serially.
 pub fn detect_all() -> Vec<CliInfo> {
-    CliKind::ALL.iter().map(|&kind| detect(kind)).collect()
+    let handles: Vec<_> = CliKind::ALL
+        .iter()
+        .map(|&kind| std::thread::spawn(move || detect(kind)))
+        .collect();
+    CliKind::ALL
+        .iter()
+        .zip(handles)
+        .map(|(&kind, handle)| {
+            handle.join().unwrap_or_else(|_| CliInfo {
+                kind,
+                label: kind.label().to_string(),
+                available: false,
+                path: None,
+                version: None,
+            })
+        })
+        .collect()
 }
 
 /// Detect a single CLI by kind, reading its version if found.
@@ -39,7 +56,14 @@ pub fn locate(kind: CliKind) -> Option<PathBuf> {
 }
 
 fn probe(path: &Path) -> Option<String> {
-    let output = Command::new(path).arg("--version").output().ok()?;
+    let mut cmd = Command::new(path);
+    cmd.arg("--version");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW — no console flash
+    }
+    let output = cmd.output().ok()?;
     if !output.status.success() {
         return None;
     }
@@ -51,26 +75,20 @@ fn probe(path: &Path) -> Option<String> {
     }
 }
 
+/// Fallback locations when PATH lookup misses: every well-known bin dir,
+/// with each platform-plausible binary name (npm installs land as `.cmd`
+/// shims on Windows, native installers as `.exe`).
 fn candidate_paths(kind: CliKind) -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    let exe = if cfg!(windows) {
-        format!("{}.exe", kind.binary())
+    let names: &[String] = &if cfg!(windows) {
+        vec![
+            format!("{}.exe", kind.binary()),
+            format!("{}.cmd", kind.binary()),
+        ]
     } else {
-        kind.binary().to_string()
+        vec![kind.binary().to_string()]
     };
-
-    if let Some(base) = directories::BaseDirs::new() {
-        out.push(base.home_dir().join(".local").join("bin").join(&exe));
-    }
-
-    #[cfg(not(windows))]
-    {
-        out.push(PathBuf::from(format!("/usr/local/bin/{}", kind.binary())));
-        out.push(PathBuf::from(format!(
-            "/opt/homebrew/bin/{}",
-            kind.binary()
-        )));
-    }
-
-    out
+    crate::cli::path_env::well_known_bin_dirs()
+        .iter()
+        .flat_map(|dir| names.iter().map(move |n| dir.join(n)))
+        .collect()
 }
