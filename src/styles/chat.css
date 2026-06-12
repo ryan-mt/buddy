@@ -156,6 +156,29 @@
 .chat-thinking summary:hover {
   color: var(--color-text);
 }
+/* Live "thinking…" — a slow left-to-right sheen (not a blink), so an active
+   reasoning pass reads as motion without a pulsing dot. */
+.chat-thinking-live {
+  background: linear-gradient(
+    100deg,
+    var(--color-text-faint) 30%,
+    var(--color-accent) 50%,
+    var(--color-text-faint) 70%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: thinking-sheen 1.8s linear infinite;
+}
+@keyframes thinking-sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
 
 /* Composer link highlight — the overlay mirrors the textarea's text (which is
    transparent above it), so links can carry color without touching metrics. */

@@ -51,10 +51,16 @@ pub(crate) async fn run(
         .spawn()
         .map_err(|e| AppError::Other(format!("failed to launch {}: {e}", kind.label())))?;
 
-    // Prompt goes over stdin — no command-line length or quoting limits.
+    // Prompt goes over stdin — no command-line length or quoting limits. A
+    // failed write usually means the process died instantly (login required,
+    // bad flag); remember it so a clean-looking exit can't read as success.
+    let mut stdin_error: Option<std::io::Error> = None;
     if let Some(mut stdin) = child.stdin.take() {
-        let _ = stdin.write_all(opts.prompt.as_bytes()).await;
-        let _ = stdin.shutdown().await;
+        stdin_error = stdin
+            .write_all(opts.prompt.as_bytes())
+            .await
+            .and(stdin.shutdown().await)
+            .err();
     }
 
     let stdout = child
@@ -117,6 +123,14 @@ pub(crate) async fn run(
         .await
         .map_err(|e| AppError::Other(format!("wait failed: {e}")))?;
     if status.success() {
+        // A clean exit that never read the prompt produced an answer to
+        // nothing — report the delivery failure instead of a hollow Done.
+        if let Some(e) = stdin_error {
+            return Err(AppError::Other(format!(
+                "{} exited before reading the prompt: {e}",
+                kind.label()
+            )));
+        }
         let _ = channel.send(ChatMsg::Done { stop_reason: None, cancelled: false });
         return Ok(());
     }

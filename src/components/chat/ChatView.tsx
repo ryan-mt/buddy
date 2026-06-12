@@ -26,7 +26,7 @@ export default function ChatView() {
   useEffect(() => {
     const el = scrollRef.current;
     if (el && stickRef.current) el.scrollTop = el.scrollHeight;
-  });
+  }, [messages]);
 
   return (
     <div className="atmosphere grain flex h-full flex-col bg-[var(--color-bg)]">

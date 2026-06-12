@@ -98,6 +98,258 @@
   color-scheme: light;
 }
 
+/* ---- Sakura — soft cherry-blossom light ---------------------------------- */
+:root[data-theme="sakura"] {
+  --color-bg: #fdf2f4;
+  --color-surface: #fff8f9;
+  --color-surface-2: #fbe9ee;
+  --color-surface-3: #f6dbe3;
+  --color-border: #ecc4d1;
+  --color-border-soft: #f5dde4;
+
+  --color-text: #4a2f38;
+  --color-text-muted: #8a6470;
+  --color-text-faint: #b896a2;
+
+  --color-accent: #e0809f;
+  --color-accent-dim: #cf6489;
+  --color-accent-contrast: #fff6f8;
+  --color-running: #4fb38f;
+  --color-danger: #e0604f;
+  --color-warning: #d99a3e;
+  --color-warning-dim: rgba(217, 154, 62, 0.13);
+
+  --color-claude: #d07a52;
+  --color-codex: #1f8a70;
+  --color-gemini: #5468c9;
+  --color-grok: #9e62c4;
+  --color-opencode: #c08428;
+
+  --color-term-well: #1a1116;
+  --atmosphere: rgba(224, 128, 159, 0.13);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 12px rgba(150, 70, 95, 0.16);
+  --shadow-modal: 0 20px 60px rgba(150, 70, 95, 0.24);
+
+  --glass-bg: rgba(255, 248, 250, 0.58);
+  --glass-bg-strong: rgba(255, 248, 250, 0.84);
+  --glass-border: rgba(120, 50, 70, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-sheen: rgba(255, 255, 255, 0.4);
+
+  color-scheme: light;
+}
+
+/* ---- Lavender — pastel wisteria light ------------------------------------ */
+:root[data-theme="lavender"] {
+  --color-bg: #f4f1fb;
+  --color-surface: #fbf9ff;
+  --color-surface-2: #ece7f8;
+  --color-surface-3: #e0d8f2;
+  --color-border: #cdc1ea;
+  --color-border-soft: #e4ddf4;
+
+  --color-text: #36304a;
+  --color-text-muted: #6b6385;
+  --color-text-faint: #a096bd;
+
+  --color-accent: #9173d9;
+  --color-accent-dim: #7553c9;
+  --color-accent-contrast: #f8f5ff;
+  --color-running: #3fa980;
+  --color-danger: #d8576a;
+  --color-warning: #c08a2e;
+  --color-warning-dim: rgba(192, 138, 46, 0.13);
+
+  --color-claude: #c06a40;
+  --color-codex: #1f8a70;
+  --color-gemini: #4a5ec9;
+  --color-grok: #8c5fc8;
+  --color-opencode: #b07c1e;
+
+  --color-term-well: #14111d;
+  --atmosphere: rgba(145, 115, 217, 0.13);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 12px rgba(90, 70, 150, 0.16);
+  --shadow-modal: 0 20px 60px rgba(90, 70, 150, 0.24);
+
+  --glass-bg: rgba(251, 249, 255, 0.58);
+  --glass-bg-strong: rgba(251, 249, 255, 0.84);
+  --glass-border: rgba(70, 55, 120, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-sheen: rgba(255, 255, 255, 0.4);
+
+  color-scheme: light;
+}
+
+/* ---- Matcha — fresh mint-cream light -------------------------------------- */
+:root[data-theme="mint"] {
+  --color-bg: #eef6f0;
+  --color-surface: #f9fdfa;
+  --color-surface-2: #e1efe6;
+  --color-surface-3: #d2e7da;
+  --color-border: #b9d8c5;
+  --color-border-soft: #ddede3;
+
+  --color-text: #243a30;
+  --color-text-muted: #557066;
+  --color-text-faint: #8aa89a;
+
+  --color-accent: #3fa97c;
+  --color-accent-dim: #2f9168;
+  --color-accent-contrast: #f3fdf8;
+  --color-running: #3fae7e;
+  --color-danger: #df6450;
+  --color-warning: #c2902f;
+  --color-warning-dim: rgba(194, 144, 47, 0.13);
+
+  --color-claude: #c66a3e;
+  --color-codex: #1a8068;
+  --color-gemini: #4a5ec9;
+  --color-grok: #8c5fc8;
+  --color-opencode: #aa7a1c;
+
+  --color-term-well: #0f1714;
+  --atmosphere: rgba(63, 169, 124, 0.13);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 12px rgba(40, 110, 80, 0.15);
+  --shadow-modal: 0 20px 60px rgba(40, 110, 80, 0.22);
+
+  --glass-bg: rgba(249, 253, 250, 0.58);
+  --glass-bg-strong: rgba(249, 253, 250, 0.84);
+  --glass-border: rgba(40, 90, 70, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-sheen: rgba(255, 255, 255, 0.4);
+
+  color-scheme: light;
+}
+
+/* ---- Peach — sweet apricot light ------------------------------------------ */
+:root[data-theme="peach"] {
+  --color-bg: #fdf3ec;
+  --color-surface: #fffaf5;
+  --color-surface-2: #fae6d8;
+  --color-surface-3: #f5d6c2;
+  --color-border: #edc3a8;
+  --color-border-soft: #f7e0d2;
+
+  --color-text: #573b2c;
+  --color-text-muted: #876551;
+  --color-text-faint: #b8967c;
+
+  --color-accent: #ec7d4d;
+  --color-accent-dim: #dc6536;
+  --color-accent-contrast: #fff7f1;
+  --color-running: #46a87f;
+  --color-danger: #db5340;
+  --color-warning: #cb8c2e;
+  --color-warning-dim: rgba(203, 140, 46, 0.13);
+
+  --color-claude: #cf6e3c;
+  --color-codex: #1f8a70;
+  --color-gemini: #5468c9;
+  --color-grok: #9e62c4;
+  --color-opencode: #b67c1c;
+
+  --color-term-well: #1a120c;
+  --atmosphere: rgba(236, 125, 77, 0.13);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 12px rgba(160, 90, 50, 0.16);
+  --shadow-modal: 0 20px 60px rgba(160, 90, 50, 0.24);
+
+  --glass-bg: rgba(255, 250, 245, 0.58);
+  --glass-bg-strong: rgba(255, 250, 245, 0.84);
+  --glass-border: rgba(140, 80, 45, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-sheen: rgba(255, 255, 255, 0.4);
+
+  color-scheme: light;
+}
+
+/* ---- Midnight — starlit indigo dark with a lilac accent ------------------- */
+:root[data-theme="midnight"] {
+  --color-bg: #14121f;
+  --color-surface: #1b1830;
+  --color-surface-2: #252140;
+  --color-surface-3: #322c54;
+  --color-border: #3d3666;
+  --color-border-soft: #2a2547;
+
+  --color-text: #ece9f7;
+  --color-text-muted: #a9a2cc;
+  --color-text-faint: #756e9b;
+
+  --color-accent: #b89af0;
+  --color-accent-dim: #9a78e6;
+  --color-accent-contrast: #18112e;
+  --color-running: #6fcfa8;
+  --color-danger: #f07a8f;
+  --color-warning: #e6b35a;
+  --color-warning-dim: rgba(230, 179, 90, 0.14);
+
+  --color-claude: #e0966e;
+  --color-codex: #5fc7ab;
+  --color-gemini: #93a6f0;
+  --color-grok: #c6a6f0;
+  --color-opencode: #e2b766;
+
+  --color-term-well: #100e1a;
+  --atmosphere: rgba(184, 154, 240, 0.14);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 16px rgba(8, 6, 20, 0.5);
+  --shadow-modal: 0 24px 70px rgba(8, 6, 20, 0.65);
+
+  --glass-bg: rgba(27, 24, 48, 0.62);
+  --glass-bg-strong: rgba(27, 24, 48, 0.8);
+  --glass-border: rgba(190, 170, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --glass-sheen: rgba(190, 170, 255, 0.06);
+
+  color-scheme: dark;
+}
+
+/* ---- Rosé — dusky mauve dark with a warm pink accent ---------------------- */
+:root[data-theme="rose"] {
+  --color-bg: #1d1418;
+  --color-surface: #271a20;
+  --color-surface-2: #34232c;
+  --color-surface-3: #432e39;
+  --color-border: #543a47;
+  --color-border-soft: #3a2832;
+
+  --color-text: #f5e7ed;
+  --color-text-muted: #c9a6b4;
+  --color-text-faint: #99707f;
+
+  --color-accent: #e88aa8;
+  --color-accent-dim: #d96a8f;
+  --color-accent-contrast: #2a1018;
+  --color-running: #6cc79c;
+  --color-danger: #ef6d6d;
+  --color-warning: #e0a94f;
+  --color-warning-dim: rgba(224, 169, 79, 0.14);
+
+  --color-claude: #e0966e;
+  --color-codex: #5fc7ab;
+  --color-gemini: #93a6f0;
+  --color-grok: #c6a6f0;
+  --color-opencode: #e2b766;
+
+  --color-term-well: #160f12;
+  --atmosphere: rgba(232, 138, 168, 0.14);
+  --grain-opacity: 0.05;
+  --shadow-pop: 0 2px 16px rgba(20, 8, 14, 0.5);
+  --shadow-modal: 0 24px 70px rgba(20, 8, 14, 0.65);
+
+  --glass-bg: rgba(39, 26, 32, 0.62);
+  --glass-bg-strong: rgba(39, 26, 32, 0.8);
+  --glass-border: rgba(255, 180, 205, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-sheen: rgba(255, 180, 205, 0.06);
+
+  color-scheme: dark;
+}
+
 :root {
   color-scheme: dark;
 }

@@ -11,6 +11,7 @@ import { InstallModal } from "./components/sessions/InstallModal";
 import { TranscriptViewer } from "./components/sessions/TranscriptViewer";
 import { ProfileModal } from "./components/profiles/ProfileModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { CommandPalette } from "./components/CommandPalette";
 import { useApp } from "./store";
 
 const Workspace = lazy(() => import("./components/editor/Workspace"));
@@ -67,6 +68,8 @@ export default function App() {
       let handled = true;
       if (e.code === "KeyT") {
         if (s.clis.some((c) => c.available)) s.openModal({});
+      } else if (e.code === "KeyK") {
+        s.setPaletteOpen(!s.paletteOpen);
       } else if (e.code === "KeyW") {
         if (s.activeId) s.requestClose(s.activeId);
       } else if (e.code === "KeyF") {
@@ -232,6 +235,7 @@ export default function App() {
 
       <ConfirmCloseDialog />
       <PromptComposer />
+      <CommandPalette />
       <Toasts />
     </div>
   );

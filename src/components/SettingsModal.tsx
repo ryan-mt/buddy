@@ -10,8 +10,10 @@ import {
   IconBookmark,
   IconClose,
   IconCode,
+  IconDownload,
   IconFolder,
   IconMoon,
+  IconResume,
   IconSettings,
   IconSparkle,
   IconSpinner,
@@ -22,6 +24,7 @@ import {
 import { Logo } from "./Logo";
 import { CLI_CAPS } from "../lib/agents";
 import { api } from "../lib/bindings";
+import { THEMES, type ThemeInfo } from "../lib/theme";
 import { useApp } from "../store";
 import {
   DEFAULT_SETTINGS,
@@ -40,6 +43,7 @@ const buttonClass =
   "flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-[12.5px] text-[var(--color-text)] transition hover:border-[var(--color-accent-dim)]";
 
 const SHORTCUTS: [string, string][] = [
+  ["Ctrl+Shift+K", "Command palette"],
   ["Ctrl+Shift+T", "New session"],
   ["Ctrl+Shift+W", "Close session"],
   ["Ctrl+Shift+C", "Toggle chat"],
@@ -72,26 +76,16 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: "about", label: "About", icon: <IconSparkle size={14} /> },
 ];
 
-/** Miniature app mockup acting as the theme switch. */
-function ThemeCard({
-  theme,
-  active,
-  onSelect,
-}: {
-  theme: Theme;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  const p =
-    theme === "dark"
-      ? { bg: "#26231e", side: "#2e2a24", line: "#4a4438", text: "#d9d3c4", accent: "#7a8c4a" }
-      : { bg: "#f3eee2", side: "#faf6ec", line: "#d9d2c0", text: "#4a463c", accent: "#6f8140" };
+/** Miniature app mockup acting as one theme swatch in the picker grid. */
+function ThemeCard({ info, active, onSelect }: { info: ThemeInfo; active: boolean; onSelect: () => void }) {
+  const p = info.swatch;
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      className={`flex-1 rounded-xl border p-1.5 text-left transition ${
+      title={info.blurb}
+      className={`rounded-xl border p-1.5 text-left transition ${
         active
           ? "border-[var(--color-accent)] shadow-[var(--shadow-pop)]"
           : "border-[var(--color-border)] hover:border-[var(--color-accent-dim)]"
@@ -101,23 +95,22 @@ function ThemeCard({
         className="block overflow-hidden rounded-lg border"
         style={{ backgroundColor: p.bg, borderColor: p.line }}
       >
-        <span className="flex h-[72px]">
-          <span className="flex w-1/4 flex-col gap-1.5 p-2" style={{ backgroundColor: p.side }}>
+        <span className="flex h-[58px]">
+          <span className="flex w-1/4 flex-col gap-1 p-1.5" style={{ backgroundColor: p.side }}>
             <span className="h-1.5 w-3/4 rounded-full" style={{ backgroundColor: p.accent }} />
             <span className="h-1 w-full rounded-full" style={{ backgroundColor: p.line }} />
             <span className="h-1 w-5/6 rounded-full" style={{ backgroundColor: p.line }} />
-            <span className="h-1 w-2/3 rounded-full" style={{ backgroundColor: p.line }} />
           </span>
-          <span className="flex flex-1 flex-col items-center justify-center gap-1.5 px-3">
+          <span className="flex flex-1 flex-col items-center justify-center gap-1 px-2">
             <span className="h-1.5 w-1/2 rounded-full" style={{ backgroundColor: p.text }} />
             <span className="h-1 w-2/3 rounded-full" style={{ backgroundColor: p.line }} />
-            <span className="mt-1 h-2.5 w-2/5 rounded-full" style={{ backgroundColor: p.accent }} />
+            <span className="mt-0.5 h-2 w-2/5 rounded-full" style={{ backgroundColor: p.accent }} />
           </span>
         </span>
       </span>
       <span className="mt-1.5 flex items-center justify-center gap-1.5 text-[12px] font-medium">
-        {theme === "dark" ? <IconMoon size={13} /> : <IconSun size={13} />}
-        {theme === "dark" ? "Dark" : "Light"}
+        {info.mode === "dark" ? <IconMoon size={12} /> : <IconSun size={12} />}
+        {info.label}
       </span>
     </button>
   );
@@ -300,12 +293,19 @@ export function SettingsModal({
             {tab === "appearance" && (
               <div>
                 <label className={labelClass}>Theme</label>
-                <div className="flex gap-3">
-                  <ThemeCard theme="light" active={theme === "light"} onSelect={() => onChangeTheme("light")} />
-                  <ThemeCard theme="dark" active={theme === "dark"} onSelect={() => onChangeTheme("dark")} />
+                <div className="grid grid-cols-3 gap-2.5">
+                  {THEMES.map((info) => (
+                    <ThemeCard
+                      key={info.id}
+                      info={info}
+                      active={theme === info.id}
+                      onSelect={() => onChangeTheme(info.id)}
+                    />
+                  ))}
                 </div>
                 <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-text-faint)]">
-                  Terminals keep their deep well in both themes — TUIs render best on dark.
+                  Eight palettes — soft pastels and moody darks. Terminals keep their deep well in
+                  every theme; TUIs render best on dark. Tip: the sidebar sun/moon cycles through.
                 </p>
               </div>
             )}
@@ -470,6 +470,30 @@ export function SettingsModal({
                 </div>
 
                 <div className="mt-4">
+                  <label className={labelClass}>Backup</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void useApp.getState().exportBackup()}
+                      className={buttonClass}
+                    >
+                      <IconDownload size={14} /> Export backup…
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void useApp.getState().importBackup()}
+                      className={buttonClass}
+                    >
+                      <IconResume size={14} /> Import backup…
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-[var(--color-text-faint)]">
+                    Settings, theme, snippets, formations and chat preferences as one JSON file.
+                    Importing replaces them.
+                  </p>
+                </div>
+
+                <div className="mt-4">
                   <label className={labelClass}>Session history</label>
                   <button
                     type="button"
@@ -607,14 +631,25 @@ export function SettingsModal({
                               {updating && <IconSpinner size={10} className="animate-spin" />}
                               {updating ? "Updating…" : "Update"}
                             </button>
-                          ) : (
-                            update &&
-                            c.available && (
-                              <span className="ml-auto shrink-0 text-[10.5px] text-[var(--color-text-faint)]">
-                                up to date
-                              </span>
-                            )
-                          )}
+                          ) : c.available ? (
+                            <div className="ml-auto flex shrink-0 items-center gap-2">
+                              {update && (
+                                <span className="text-[10.5px] text-[var(--color-running)]">up to date</span>
+                              )}
+                              {/* Always available: force a re-run of the vendor installer to
+                                  pull the latest, even when no update was detected. */}
+                              <button
+                                type="button"
+                                onClick={() => void useApp.getState().updateCli(c.kind)}
+                                disabled={updating}
+                                title={`Reinstall ${c.label} (pulls the latest)`}
+                                className="flex items-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)] transition hover:border-[var(--color-accent-dim)] hover:text-[var(--color-text)] disabled:opacity-60"
+                              >
+                                {updating && <IconSpinner size={10} className="animate-spin" />}
+                                {updating ? "Updating…" : "Reinstall"}
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })

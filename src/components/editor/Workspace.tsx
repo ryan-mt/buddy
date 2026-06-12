@@ -3,7 +3,7 @@ import { IconClose } from "../icons";
 import { EditorPane } from "./EditorPane";
 import { FileTree } from "./FileTree";
 import { api } from "../../lib/bindings";
-import type { Theme } from "../../lib/theme";
+import { themeMode, type Theme } from "../../lib/theme";
 
 interface WorkspaceProps {
   rootPath: string;
@@ -197,7 +197,7 @@ export default function Workspace({ rootPath, rootName, theme }: WorkspaceProps)
               path={active.path}
               language={langForFile(active.name)}
               value={active.content}
-              theme={theme === "light" ? "light" : "vs-dark"}
+              theme={themeMode(theme) === "light" ? "light" : "vs-dark"}
               onChange={(v) => changeContent(active.path, v)}
             />
           ) : (

@@ -158,7 +158,7 @@ fn spawn_waiter<S>(
     S: FnMut(TerminalMsg) -> bool + Send + 'static,
 {
     std::thread::spawn(move || {
-        let code = child.wait().ok().map(|status| status.exit_code() as i32);
+        let code = child.wait().ok().map(|status| i64::from(status.exit_code()));
         sink(TerminalMsg::Exit { code });
         if let Ok(mut map) = sessions.lock() {
             map.remove(&id);

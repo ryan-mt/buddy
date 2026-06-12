@@ -253,16 +253,43 @@ function ActionTimeline({ actions }: { actions: ChatAction[] }) {
   );
 }
 
-/** Live-streamed reasoning trace; open while it's the only thing happening. */
-function ThinkingBlock({ text, initiallyOpen }: { text: string; initiallyOpen: boolean }) {
+/** Live-streamed reasoning trace; open while it's the only thing happening.
+ *  The summary carries a word count (settled) or a "thinking…" pulse (live),
+ *  so a long reasoning pass reads as substantial work, not an empty toggle. */
+function ThinkingBlock({
+  text,
+  initiallyOpen,
+  live,
+}: {
+  text: string;
+  initiallyOpen: boolean;
+  live: boolean;
+}) {
   const [open, setOpen] = useState(initiallyOpen);
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
   return (
     <details
       open={open}
       onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
       className="chat-thinking mb-2"
     >
-      <summary>Reasoning</summary>
+      <summary>
+        <span className="inline-flex items-center gap-1.5 align-middle">
+          <IconSparkle size={11} className="text-[var(--color-accent)]" />
+          <span>Reasoning</span>
+          {live ? (
+            <span className="chat-thinking-live font-mono text-[10px] normal-case text-[var(--color-text-faint)]">
+              thinking…
+            </span>
+          ) : (
+            words > 0 && (
+              <span className="font-mono text-[10px] normal-case text-[var(--color-text-faint)]">
+                {words} word{words === 1 ? "" : "s"}
+              </span>
+            )
+          )}
+        </span>
+      </summary>
       <div className="whitespace-pre-wrap pt-1.5">{text}</div>
     </details>
   );
@@ -304,7 +331,11 @@ export function ChatMessageRow({
         </div>
 
         {message.thinking && (
-          <ThinkingBlock text={message.thinking} initiallyOpen={streaming && !message.content} />
+          <ThinkingBlock
+            text={message.thinking}
+            initiallyOpen={streaming && !message.content}
+            live={streaming && !message.content}
+          />
         )}
 
         {message.actions.length > 0 && <ActionTimeline actions={message.actions} />}

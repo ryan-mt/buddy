@@ -20,29 +20,37 @@ export interface ChatPrefs {
 
 const KEY = "buddy-chat-model";
 
+const DEFAULT_PREFS: ChatPrefs = {
+  provider: DEFAULT_PROVIDER,
+  model: DEFAULT_MODEL,
+  effort: "auto",
+  access: "auto",
+};
+
+/** Coerce a persisted payload into valid prefs. model "" is valid — it means
+ *  "the CLI's default model". Guard the enums: a stale/corrupted value would
+ *  crash the keyed UI. */
+export function sanitizeChatPrefs(parsed: Partial<ChatPrefs>): ChatPrefs {
+  const provider =
+    parsed.provider === "anthropic" || parsed.provider === "openai" ? parsed.provider : null;
+  if (!provider || typeof parsed.model !== "string") return DEFAULT_PREFS;
+  const effort = EFFORT_LEVELS.some((l) => l.value === parsed.effort)
+    ? (parsed.effort as Effort)
+    : "auto";
+  const access = ACCESS_LEVELS.some((l) => l.value === parsed.access)
+    ? (parsed.access as Access)
+    : "auto";
+  return { provider, model: parsed.model, effort, access };
+}
+
 export function loadChatPrefs(): ChatPrefs {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<ChatPrefs>;
-      // model "" is valid — it means "the CLI's default model". Guard the
-      // enums: a stale/corrupted value would crash the keyed UI.
-      const provider =
-        parsed.provider === "anthropic" || parsed.provider === "openai" ? parsed.provider : null;
-      if (provider && typeof parsed.model === "string") {
-        const effort = EFFORT_LEVELS.some((l) => l.value === parsed.effort)
-          ? (parsed.effort as Effort)
-          : "auto";
-        const access = ACCESS_LEVELS.some((l) => l.value === parsed.access)
-          ? (parsed.access as Access)
-          : "auto";
-        return { provider, model: parsed.model, effort, access };
-      }
-    }
+    if (raw) return sanitizeChatPrefs(JSON.parse(raw) as Partial<ChatPrefs>);
   } catch {
     // fall through to defaults
   }
-  return { provider: DEFAULT_PROVIDER, model: DEFAULT_MODEL, effort: "auto", access: "auto" };
+  return DEFAULT_PREFS;
 }
 
 export function saveChatPrefs(prefs: ChatPrefs): void {

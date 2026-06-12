@@ -47,15 +47,34 @@ real PTY terminals via `portable-pty` (ConPTY on Windows) rendered with
 - **Small comforts.** Sessions auto-title themselves from your first prompt,
   the header shows session uptime, and any pane's scrollback exports to a
   text file.
+- **Built-in chat with an agentic timeline.** Talk to Claude Code / Codex
+  headless (no API keys — it rides your CLI logins). Replies show a collapsible
+  **reasoning** trace (live word-count while it thinks), the tool-call timeline,
+  nested **subagent** groups for `Task`/`Agent` calls, and TodoWrite plans as
+  checklist cards. Group chats into project folders for read-only code context.
+- **Command palette.** `Ctrl/Cmd+Shift+K` opens one fuzzy-searchable list over
+  everything: switch sessions, launch/install, projects, formations, themes,
+  git changes, settings, backup.
+- **Backup & restore.** Export settings, theme, snippets, formations, and chat
+  preferences as one JSON file (Settings → Data) and import them on another
+  machine; malformed files degrade gracefully instead of failing the import.
 - **Code editor.** Monaco-based editor with a lazy file tree, tabs, dirty
   tracking, and save (bundled fully offline).
 - **History & resume.** Every session is recorded; resume past Claude sessions
   (`--resume`) either from buddy's history or from what's on disk in
   `~/.claude`. Read past transcripts in a viewer with token totals.
-- **Settings & shortcuts.** Light / dark theme, terminal font size, default
-  Claude permission / effort. Global shortcuts: `Ctrl/Cmd+Shift+T` new session,
-  `+W` close, `+F` find, `+Z` zoom pane, `+B` broadcast, `+P` composer,
-  `+1…9` switch, `+,` settings.
+- **Eight themes.** Four soft pastels (Sakura, Lavender, Matcha, Peach) and
+  four warm-to-moody darks (Espresso, Midnight, Rosé) plus Linen — pick one in
+  Settings → Appearance, or click the sidebar sun/moon to cycle. Monaco and
+  `color-scheme` follow the theme's light/dark mode; terminals keep their deep
+  well in every theme.
+- **CLI updates from Settings.** Settings → About lists every detected CLI with
+  its version; check the npm registry for newer releases and **Update**, or
+  **Reinstall** any installed CLI on demand to pull the latest.
+- **Settings & shortcuts.** Theme, terminal font size, default Claude
+  permission / effort. Global shortcuts: `Ctrl/Cmd+Shift+K` command palette,
+  `+T` new session, `+W` close, `+F` find, `+Z` zoom pane, `+B` broadcast,
+  `+P` composer, `+1…9` switch, `+,` settings.
 - **Liquid-glass UI.** Warm, organic palette with frosted-glass chrome
   (sidebar, header, dialogs) over an ambient color mesh. Status is shown with
   static glows and rings — nothing blinks.
@@ -77,6 +96,7 @@ npm run tauri build      # release binary + OS installer
 
 ```bash
 npm run build                       # tsc + vite build
+npm test                            # vitest — frontend unit tests (lib + store)
 cargo test    --manifest-path src-tauri/Cargo.toml
 cargo clippy  --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```

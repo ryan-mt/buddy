@@ -107,6 +107,15 @@ fn check_root(root: &str) -> AppResult<&Path> {
     Ok(p)
 }
 
+/// A repo-relative path as git status reports them: plain components only.
+/// Anything absolute or with `..` could escape the repository when joined.
+fn is_repo_relative(path: &str) -> bool {
+    !path.is_empty()
+        && Path::new(path)
+            .components()
+            .all(|c| matches!(c, std::path::Component::Normal(_)))
+}
+
 /// Whether the repo has any commit yet (`git diff HEAD` needs one).
 async fn has_head(root: &Path) -> bool {
     git(root, &["rev-parse", "--verify", "--quiet", "HEAD"])
@@ -164,6 +173,9 @@ pub async fn git_changes(root: String) -> AppResult<GitChanges> {
 #[tauri::command]
 pub async fn git_file_diff(root: String, path: String, untracked: bool) -> AppResult<FileDiff> {
     let root = check_root(&root)?.to_path_buf();
+    if !is_repo_relative(&path) {
+        return Err(AppError::Other(format!("not a repository path: {path}")));
+    }
 
     if untracked || !has_head(&root).await {
         return Ok(disk_as_added(&root.join(&path)));
@@ -415,6 +427,18 @@ mod tests {
         assert_eq!(parse_status(b"## No commits yet on main\0").0, "main");
         assert_eq!(parse_status(b"## HEAD (no branch)\0").0, "detached HEAD");
         assert_eq!(parse_status(b"## feature/x\0").0, "feature/x");
+    }
+
+    #[test]
+    fn repo_relative_rejects_escapes() {
+        assert!(is_repo_relative("src/main.rs"));
+        assert!(is_repo_relative("a b/c-d.txt"));
+        assert!(!is_repo_relative(""));
+        assert!(!is_repo_relative("../outside.txt"));
+        assert!(!is_repo_relative("src/../../outside.txt"));
+        assert!(!is_repo_relative("C:\\Windows\\system.ini"));
+        assert!(!is_repo_relative("/etc/passwd"));
+        assert!(!is_repo_relative("\\\\server\\share\\x"));
     }
 
     #[test]

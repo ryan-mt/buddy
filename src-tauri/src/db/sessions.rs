@@ -20,7 +20,7 @@ pub struct SessionRecord {
     pub permission_mode: Option<String>,
     pub effort: Option<String>,
     pub status: String,
-    pub exit_code: Option<i32>,
+    pub exit_code: Option<i64>,
     pub created_at: i64,
     pub last_active_at: i64,
 }
@@ -85,7 +85,7 @@ impl Db {
         Ok(())
     }
 
-    pub fn mark_session_exited(&self, id: &str, code: Option<i32>) -> AppResult<()> {
+    pub fn mark_session_exited(&self, id: &str, code: Option<i64>) -> AppResult<()> {
         self.lock()?
             .execute(
                 "UPDATE sessions

@@ -19,6 +19,7 @@ import { HistoryPanel } from "../sessions/HistoryPanel";
 import { ProjectsPanel } from "../projects/ProjectsPanel";
 import { ProfilesPanel } from "../profiles/ProfilesPanel";
 import { useApp } from "../../store";
+import { nextTheme, themeInfo, themeMode } from "../../lib/theme";
 import type { SidebarView } from "../../types";
 
 const iconBtn =
@@ -28,7 +29,7 @@ export function Sidebar() {
   const view = useApp((s) => s.view);
   const setView = useApp((s) => s.setView);
   const theme = useApp((s) => s.theme);
-  const toggleTheme = useApp((s) => s.toggleTheme);
+  const cycleTheme = useApp((s) => s.cycleTheme);
   const setSettingsOpen = useApp((s) => s.setSettingsOpen);
   const clis = useApp((s) => s.clis);
   const clisError = useApp((s) => s.clisError);
@@ -60,11 +61,11 @@ export function Sidebar() {
         <span className="font-mono text-[15px] font-semibold tracking-tight">buddy</span>
         <button
           type="button"
-          onClick={toggleTheme}
-          title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          onClick={cycleTheme}
+          title={`Theme: ${themeInfo(theme).label} — click for ${themeInfo(nextTheme(theme)).label}`}
           className={`ml-auto ${iconBtn}`}
         >
-          {theme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
+          {themeMode(theme) === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
         </button>
         <button
           type="button"

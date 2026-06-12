@@ -13,8 +13,9 @@ pub enum TerminalMsg {
     /// A chunk of raw terminal output, base64-encoded so multi-byte UTF-8
     /// sequences split across reads survive JSON transport intact.
     Output { data: String },
-    /// The child process exited.
-    Exit { code: Option<i32> },
+    /// The child process exited. `i64` (not `i32`) holds the full Windows
+    /// `DWORD` range — crash codes like `0xC0000005` would wrap negative as i32.
+    Exit { code: Option<i64> },
 }
 
 /// How to launch a PTY-backed process.

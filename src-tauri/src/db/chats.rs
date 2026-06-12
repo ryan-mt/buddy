@@ -262,12 +262,15 @@ impl Db {
     }
 
     pub fn delete_chat(&self, id: &str) -> AppResult<()> {
-        let conn = self.lock()?;
-        conn.execute("DELETE FROM chat_messages WHERE chat_id = ?1", [id])
+        // One transaction: a crash between the two deletes must not leave an
+        // empty husk of a thread behind.
+        let mut conn = self.lock()?;
+        let tx = conn.transaction().map_err(db_err)?;
+        tx.execute("DELETE FROM chat_messages WHERE chat_id = ?1", [id])
             .map_err(db_err)?;
-        conn.execute("DELETE FROM chats WHERE id = ?1", [id])
+        tx.execute("DELETE FROM chats WHERE id = ?1", [id])
             .map_err(db_err)?;
-        Ok(())
+        tx.commit().map_err(db_err)
     }
 
     /// Move a thread into a project (or out of any, with None).

@@ -4,7 +4,7 @@
 // Components subscribe with selectors; actions encapsulate the api calls.
 
 import { create } from "zustand";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import {
   api,
@@ -36,7 +36,9 @@ import {
   type FormationSlot,
 } from "../lib/formations";
 import { loadSnippets, saveSnippets, type Snippet } from "../lib/snippets";
-import { applyTheme, getInitialTheme, type Theme } from "../lib/theme";
+import { describeBackup, parseBackup, serializeBackup } from "../lib/backup";
+import { loadChatPrefs, saveChatPrefs } from "../lib/chatPrefs";
+import { applyTheme, getInitialTheme, nextTheme, type Theme } from "../lib/theme";
 import { getInitialSettings, saveSettings, type Settings } from "../lib/settings";
 import {
   clearSnapshot,
@@ -200,11 +202,18 @@ interface AppState {
   setSettingsOpen: (open: boolean) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
+  paletteOpen: boolean;
+  setPaletteOpen: (open: boolean) => void;
+
+  // --- backup (settings, theme, snippets, formations, chat prefs as a file) ---
+  exportBackup: () => Promise<void>;
+  importBackup: () => Promise<void>;
 
   // --- theme & settings ---
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
+  /** Advance to the next theme in the registry (sidebar cycle button). */
+  cycleTheme: () => void;
   settings: Settings;
   updateSettings: (settings: Settings) => void;
 
@@ -904,6 +913,52 @@ export const useApp = create<AppState>((set, get) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   searchOpen: false,
   setSearchOpen: (searchOpen) => set({ searchOpen }),
+  paletteOpen: false,
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+
+  // --- backup ---
+  exportBackup: async () => {
+    const path = await save({
+      title: "Export buddy backup",
+      defaultPath: "buddy-backup.json",
+      filters: [{ name: "buddy backup", extensions: ["json"] }],
+    });
+    if (!path) return;
+    const { settings, theme, snippets, formations } = get();
+    try {
+      await api.writeFile(
+        path,
+        serializeBackup({ settings, theme, snippets, formations, chatPrefs: loadChatPrefs() }, new Date()),
+      );
+      get().pushToast(`Backup saved — ${basename(path)}`);
+    } catch (e) {
+      get().pushToast(errorMessage(e), "error");
+    }
+  },
+
+  importBackup: async () => {
+    const selected = await open({
+      title: "Import buddy backup",
+      multiple: false,
+      filters: [{ name: "buddy backup", extensions: ["json"] }],
+    });
+    if (typeof selected !== "string") return;
+    try {
+      const data = parseBackup(await api.readFile(selected));
+      get().updateSettings(data.settings);
+      get().setTheme(data.theme);
+      saveSnippets(data.snippets);
+      saveFormations(data.formations);
+      saveChatPrefs(data.chatPrefs);
+      set({ snippets: data.snippets, formations: data.formations });
+      // Dynamic import dodges a static index↔chat module cycle.
+      const { useChat } = await import("./chat");
+      useChat.setState({ ...data.chatPrefs });
+      get().pushToast(`Imported ${describeBackup(data)}`);
+    } catch (e) {
+      get().pushToast(errorMessage(e), "error");
+    }
+  },
 
   // --- theme & settings ---
   theme: getInitialTheme(),
@@ -911,7 +966,7 @@ export const useApp = create<AppState>((set, get) => ({
     applyTheme(theme);
     set({ theme });
   },
-  toggleTheme: () => get().setTheme(get().theme === "dark" ? "light" : "dark"),
+  cycleTheme: () => get().setTheme(nextTheme(get().theme)),
   settings: getInitialSettings(),
   updateSettings: (settings) => {
     saveSettings(settings);
