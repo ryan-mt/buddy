@@ -9,6 +9,8 @@ import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import {
   api,
   type CliInfo,
+  type CliKind,
+  type CliUpdateInfo,
   type Profile,
   type ProfileInput,
   type ResumableSession,
@@ -85,6 +87,17 @@ interface AppState {
   clis: CliInfo[];
   clisError: string | null;
   refreshClis: () => Promise<void>;
+
+  // --- CLI updates (npm registry vs installed versions) ---
+  cliUpdates: CliUpdateInfo[];
+  checkingUpdates: boolean;
+  /** CLI kinds with an update currently being applied. */
+  updatingCli: Record<string, boolean>;
+  /** notify=true (launch check) toasts when updates exist and stays quiet on
+   *  errors; notify=false (manual check from Settings) toasts errors instead. */
+  checkCliUpdates: (notify: boolean) => Promise<void>;
+  updateCli: (kind: CliKind) => Promise<void>;
+  updateAllClis: () => Promise<void>;
 
   // --- sessions & split layout ---
   sessions: SessionTab[];
@@ -179,6 +192,10 @@ interface AppState {
   closeWorkspace: () => void;
   transcript: SessionRecord | null;
   viewTranscript: (rec: SessionRecord | null) => void;
+  /** Git changes overlay, pointed at a repository root. */
+  diffView: { rootPath: string; rootName: string } | null;
+  openDiff: (target: { rootPath: string; rootName: string }) => void;
+  closeDiff: () => void;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
   searchOpen: boolean;
@@ -215,6 +232,7 @@ function spawn(
     modal: null,
     workspace: null,
     transcript: null,
+    diffView: null,
     broadcast: state.broadcast && layout.kind === "split",
   };
 }
@@ -235,7 +253,7 @@ function writePrompt(ptyId: string, text: string): void {
 
 /** Flash the Windows taskbar when buddy isn't the focused window. */
 function flashTaskbar(critical: boolean): void {
-  if (document.hasFocus()) return;
+  if (document.hasFocus() || !useApp.getState().settings.notifications) return;
   getCurrentWindow()
     .requestUserAttention(critical ? UserAttentionType.Critical : UserAttentionType.Informational)
     .catch(() => {});
@@ -260,6 +278,62 @@ export const useApp = create<AppState>((set, get) => ({
   // --- CLI detection ---
   clis: [],
   clisError: null,
+  cliUpdates: [],
+  checkingUpdates: false,
+  updatingCli: {},
+
+  checkCliUpdates: async (notify) => {
+    if (get().checkingUpdates) return;
+    set({ checkingUpdates: true });
+    try {
+      const cliUpdates = await api.checkCliUpdates();
+      set({ cliUpdates });
+      const fresh = cliUpdates.filter((u) => u.hasUpdate);
+      if (notify && fresh.length > 0) {
+        const label = (kind: CliKind) =>
+          get().clis.find((c) => c.kind === kind)?.label ?? kind;
+        get().pushToast(
+          fresh.length === 1
+            ? `${label(fresh[0].kind)} ${fresh[0].latest} is available — update in Settings`
+            : `${fresh.length} CLI updates available — open Settings → About`,
+        );
+      }
+    } catch (e) {
+      if (!notify) get().pushToast(errorMessage(e), "error");
+    } finally {
+      set({ checkingUpdates: false });
+    }
+  },
+
+  updateCli: async (kind) => {
+    if (get().updatingCli[kind]) return;
+    set({ updatingCli: { ...get().updatingCli, [kind]: true } });
+    try {
+      const info = await api.updateCli(kind);
+      set({
+        clis: get().clis.map((c) => (c.kind === kind ? info : c)),
+        // The vendor command installs the latest — settle the row locally; a
+        // manual re-check would surface the rare silent no-op.
+        cliUpdates: get().cliUpdates.map((u) =>
+          u.kind === kind ? { ...u, installed: info.version ?? u.latest, hasUpdate: false } : u,
+        ),
+      });
+      get().pushToast(`${info.label} updated to ${info.version ?? "the latest version"}`);
+    } catch (e) {
+      get().pushToast(errorMessage(e), "error");
+    } finally {
+      const { [kind]: _, ...rest } = get().updatingCli;
+      set({ updatingCli: rest });
+    }
+  },
+
+  updateAllClis: async () => {
+    // Sequential on purpose — npm/global installs fight over the same dirs.
+    for (const u of get().cliUpdates.filter((x) => x.hasUpdate)) {
+      await get().updateCli(u.kind);
+    }
+  },
+
   refreshClis: async () => {
     try {
       set({ clis: await api.listClis(), clisError: null });
@@ -353,7 +427,7 @@ export const useApp = create<AppState>((set, get) => ({
   requestClose: (id) => {
     const session = get().sessions.find((s) => s.id === id);
     if (!session) return;
-    if (session.exited) get().closeSession(id);
+    if (session.exited || !get().settings.confirmClose) get().closeSession(id);
     else set({ confirmCloseId: id });
   },
 
@@ -393,6 +467,7 @@ export const useApp = create<AppState>((set, get) => ({
       zoomedId: null,
       workspace: null,
       transcript: null,
+      diffView: null,
       activity: nextActivity,
       broadcast: broadcast && nextLayout.kind === "split",
     });
@@ -640,6 +715,7 @@ export const useApp = create<AppState>((set, get) => ({
       view: "cli",
       workspace: null,
       transcript: null,
+      diffView: null,
       broadcast: false,
     });
   },
@@ -813,10 +889,17 @@ export const useApp = create<AppState>((set, get) => ({
   setProfileModal: (profileModal) => set({ profileModal }),
   workspace: null,
   openWorkspace: (project) =>
-    set({ workspace: { rootPath: project.path, rootName: project.name }, transcript: null }),
+    set({
+      workspace: { rootPath: project.path, rootName: project.name },
+      transcript: null,
+      diffView: null,
+    }),
   closeWorkspace: () => set({ workspace: null }),
   transcript: null,
-  viewTranscript: (transcript) => set({ transcript, workspace: null }),
+  viewTranscript: (transcript) => set({ transcript, workspace: null, diffView: null }),
+  diffView: null,
+  openDiff: (diffView) => set({ diffView, transcript: null }),
+  closeDiff: () => set({ diffView: null }),
   settingsOpen: false,
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   searchOpen: false,

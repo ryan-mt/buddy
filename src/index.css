@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/chat.css";
 
 /* ---------------------------------------------------------------------------
    buddy — "basecamp" theme. Warm, organic, calm: espresso & linen surfaces,

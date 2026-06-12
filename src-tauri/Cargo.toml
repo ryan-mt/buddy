@@ -30,4 +30,5 @@ uuid = { version = "1.23.2", features = ["v4", "serde"] }
 which = "8.0.3"
 base64 = "0.22.1"
 rusqlite = { version = "0.32", features = ["bundled"] }
+tokio = { version = "1", features = ["macros", "sync", "process", "io-util", "time"] }
 

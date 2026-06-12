@@ -48,6 +48,14 @@ export function IconPlus({ size = 16, className }: IconProps) {
   );
 }
 
+export function IconCheck({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
 export function IconClose({ size = 16, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
@@ -330,6 +338,105 @@ export function IconCollapse({ size = 16, className }: IconProps) {
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
       <path d="M20 10h-6V4M14 10l6.5-6.5" />
       <path d="M4 14h6v6M10 14l-6.5 6.5" />
+    </svg>
+  );
+}
+
+/** Chat: a speech bubble carrying the `>` prompt — talk to a model directly. */
+export function IconChat({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M4 7a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 7v7a2.5 2.5 0 0 1-2.5 2.5H9.5L5.5 20l.1-3.5H6.5A2.5 2.5 0 0 1 4 14z" />
+      <path d="M8.5 8.5l2.5 2.2-2.5 2.2M13 13h3" />
+    </svg>
+  );
+}
+
+/** Stop generation: a filled rounded square. */
+export function IconStop({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden
+      fill="currentColor"
+      stroke="none"
+    >
+      <rect x="7" y="7" width="10" height="10" rx="2" />
+    </svg>
+  );
+}
+
+/** Copy: two offset sheets. */
+export function IconCopy({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 14.5A1.5 1.5 0 0 1 3.5 13V5.5A1.5 1.5 0 0 1 5 4h7.5A1.5 1.5 0 0 1 14 5.5" />
+    </svg>
+  );
+}
+
+/** Send (chat): straight-up arrow, lives in the round accent button. */
+export function IconArrowUp({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
+    </svg>
+  );
+}
+
+/** Overflow menu: three quiet dots (filled — strokes read as rings this small). */
+export function IconDots({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden
+      fill="currentColor"
+      stroke="none"
+    >
+      <circle cx="5" cy="12" r="1.7" />
+      <circle cx="12" cy="12" r="1.7" />
+      <circle cx="19" cy="12" r="1.7" />
+    </svg>
+  );
+}
+
+/** Tool-access shield (the chat composer's permission picker). */
+export function IconShield({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M12 3.8l6.3 2.2v5c0 4.3-2.7 7-6.3 9.2-3.6-2.2-6.3-4.9-6.3-9.2v-5z" />
+    </svg>
+  );
+}
+
+/** Working-tree diff: a split sheet, old (−) on the left, new (+) on the right. */
+export function IconDiff({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <path d="M12 4.5v15" />
+      <path d="M6.2 12h3.1" />
+      <path d="M14.7 12h3.1M16.25 10.45v3.1" />
+    </svg>
+  );
+}
+
+/** Git branch: trunk with a merged-in fork. */
+export function IconBranch({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <circle cx="7" cy="6" r="2.1" />
+      <circle cx="7" cy="18" r="2.1" />
+      <circle cx="17" cy="7.5" r="2.1" />
+      <path d="M7 8.1v7.8" />
+      <path d="M17 9.6c-.2 3.4-3.4 4.6-7.6 4.9" />
     </svg>
   );
 }

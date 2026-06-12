@@ -3,7 +3,7 @@ import { IconBookmark, IconClose, IconSend } from "../icons";
 import { useApp } from "../../store";
 
 /**
- * Slide-up prompt composer (⌃⇧P): write once, send to the active pane or to
+ * Slide-up prompt composer (Ctrl+Shift+P): write once, send to the active pane or to
  * every visible pane. Busy agents queue the prompt and get it when they go
  * quiet. Snippets persist favourite prompts across sessions.
  */

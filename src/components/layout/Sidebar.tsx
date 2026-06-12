@@ -1,4 +1,5 @@
 import {
+  IconChat,
   IconDownload,
   IconFolder,
   IconHistory,
@@ -9,6 +10,7 @@ import {
   IconSun,
   IconTerminal,
 } from "../icons";
+import { ChatThreadList } from "../chat/ChatThreadList";
 import { Logo } from "../Logo";
 import { SegmentedControl } from "./SegmentedControl";
 import { SessionList } from "../sessions/SessionList";
@@ -67,7 +69,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setSettingsOpen(true)}
-          title="Settings (⌃⇧,)"
+          title="Settings (Ctrl+Shift+,)"
           className={iconBtn}
         >
           <IconSettings size={16} />
@@ -81,6 +83,7 @@ export function Sidebar() {
           compact
           segments={[
             { value: "cli", label: "Sessions", icon: <IconTerminal size={16} /> },
+            { value: "chat", label: "Chat", icon: <IconChat size={16} /> },
             { value: "projects", label: "Projects", icon: <IconFolder size={16} /> },
             { value: "profiles", label: "Profiles", icon: <IconProfiles size={16} /> },
             { value: "history", label: "History", icon: <IconHistory size={16} /> },
@@ -112,12 +115,15 @@ export function Sidebar() {
             <SessionList />
             <FormationsSection />
           </>
+        ) : view === "chat" ? (
+          <ChatThreadList />
         ) : view === "projects" ? (
           <ProjectsPanel
             projects={projects}
             onAddProject={() => void addProject()}
             onEditProject={openWorkspace}
             onLaunchProject={(p) => openModal({ cwd: p.path, title: p.name })}
+            onDiffProject={(p) => useApp.getState().openDiff({ rootPath: p.path, rootName: p.name })}
             onRemoveProject={(p) => void removeProject(p.id)}
           />
         ) : view === "profiles" ? (
@@ -141,26 +147,19 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className="relative flex items-center gap-2 border-t border-[var(--color-border-soft)] px-4 py-2.5 text-[11px]">
-        <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{
-            backgroundColor: hasCli ? "var(--color-running)" : "var(--color-text-faint)",
-          }}
-        />
-        {hasCli ? (
-          <span className="truncate font-mono text-[var(--color-text-muted)]">
-            {availableClis.map((c) => `${c.kind} ${c.version}`).join("  ·  ")}
-          </span>
-        ) : (
+      {/* CLI versions live in Settings → About; the footer only surfaces
+          while nothing is installed, as the way back to detection. */}
+      {!hasCli && (
+        <div className="relative flex items-center gap-2 border-t border-[var(--color-border-soft)] px-4 py-2.5 text-[11px]">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-text-faint)]" />
           <button
             onClick={() => void refreshClis()}
             className="font-mono text-[var(--color-text-muted)] underline-offset-2 hover:underline"
           >
             {clisError ? "no CLI found — retry" : "detecting…"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </aside>
   );
 }

@@ -1,9 +1,11 @@
 //! SQLite persistence (via `rusqlite`, bundled) for app data that should
 //! outlive a session: the user's projects, profiles, and session history.
 
+mod chats;
 mod profiles;
 mod sessions;
 
+pub use chats::{ChatAction, ChatMeta, ChatProject, ChatThread, SaveChat, TodoItem};
 pub use profiles::Profile;
 pub use sessions::{NewSession, SessionRecord};
 
@@ -32,6 +34,12 @@ impl Db {
     /// Profile config dirs live in `profiles/` next to the database file.
     pub fn open(path: &Path) -> AppResult<Self> {
         let conn = Connection::open(path).map_err(db_err)?;
+        // WAL survives crashes mid-write and lets a reader coexist with the
+        // writer; the busy timeout rides out transient locks (e.g. a backup
+        // tool touching the file) instead of failing the command.
+        let _ = conn.busy_timeout(std::time::Duration::from_secs(5));
+        let _ = conn.pragma_update(None, "journal_mode", "WAL");
+        let _ = conn.pragma_update(None, "synchronous", "NORMAL");
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS projects (
                 id         TEXT PRIMARY KEY,
@@ -61,7 +69,57 @@ impl Db {
                 exit_code       INTEGER,
                 created_at      INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
                 last_active_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+            );
+            CREATE TABLE IF NOT EXISTS chats (
+                id                TEXT PRIMARY KEY,
+                title             TEXT NOT NULL,
+                provider          TEXT NOT NULL,
+                model             TEXT NOT NULL,
+                claude_session_id TEXT,
+                codex_session_id  TEXT,
+                created_at        INTEGER NOT NULL,
+                updated_at        INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id            TEXT PRIMARY KEY,
+                chat_id       TEXT NOT NULL,
+                idx           INTEGER NOT NULL,
+                role          TEXT NOT NULL,
+                content       TEXT NOT NULL,
+                thinking      TEXT,
+                provider      TEXT,
+                model         TEXT,
+                input_tokens  INTEGER,
+                output_tokens INTEGER,
+                actions       TEXT,
+                created_at    INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS chat_projects (
+                id           TEXT PRIMARY KEY,
+                name         TEXT NOT NULL,
+                instructions TEXT NOT NULL DEFAULT '',
+                path         TEXT NOT NULL DEFAULT '',
+                created_at   INTEGER NOT NULL,
+                updated_at   INTEGER NOT NULL
             );",
+        )
+        .map_err(db_err)?;
+        // Databases from before the CLI-session/project columns: ALTER fails
+        // with "duplicate column" once applied, so the error is safe to ignore.
+        for col in ["claude_session_id", "codex_session_id", "project_id"] {
+            let _ = conn.execute(&format!("ALTER TABLE chats ADD COLUMN {col} TEXT"), []);
+        }
+        // Chat projects from before they were folder-backed.
+        let _ = conn.execute(
+            "ALTER TABLE chat_projects ADD COLUMN path TEXT NOT NULL DEFAULT ''",
+            [],
+        );
+        // Messages from before the tool-action timeline.
+        let _ = conn.execute("ALTER TABLE chat_messages ADD COLUMN actions TEXT", []);
+        // Indexes arrive after the ALTERs so they can reference late columns.
+        conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS idx_chat_messages_chat ON chat_messages (chat_id);
+             CREATE INDEX IF NOT EXISTS idx_chats_project ON chats (project_id);",
         )
         .map_err(db_err)?;
         let profiles_dir = path

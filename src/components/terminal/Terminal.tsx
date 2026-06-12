@@ -3,9 +3,10 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { WebglAddon } from "@xterm/addon-webgl";
-import { IconClose, IconSpinner } from "../icons";
+import { IconClose, IconSearch, IconSpinner } from "../icons";
 import { api, Channel, type CliKind, type TerminalMsg } from "../../lib/bindings";
 import { AGENT_LABEL } from "../../lib/agents";
+import type { CursorStyle } from "../../lib/settings";
 import "@xterm/xterm/css/xterm.css";
 
 /** The deep warm well behind every terminal (TUIs render best on dark, in both
@@ -20,6 +21,15 @@ function decodeBase64(b64: string): Uint8Array {
   }
   return bytes;
 }
+
+/** Highlight every match in the scrollback; warm ambers sit on the dark well.
+ *  Passing decorations is also what makes the addon report match counts. */
+const FIND_DECORATIONS = {
+  matchBackground: "#4a3a18",
+  matchOverviewRuler: "#8a6c2f",
+  activeMatchBackground: "#7a5c1e",
+  activeMatchColorOverviewRuler: "#e0a84e",
+};
 
 function errorMessage(e: unknown): string {
   if (e && typeof e === "object" && "message" in e) {
@@ -40,6 +50,14 @@ interface TerminalProps {
   resumeId?: string | null;
   /** xterm font size in px (defaults to 13). Applies live. */
   fontSize?: number;
+  /** Cursor shape (defaults to block). Applies live. */
+  cursorStyle?: CursorStyle;
+  /** Cursor blink (defaults to true). Applies live. */
+  cursorBlink?: boolean;
+  /** Scrollback buffer in lines (defaults to 5000). Applies live. */
+  scrollback?: number;
+  /** Selecting text copies it to the clipboard. */
+  copyOnSelect?: boolean;
   /** Show the find-in-scrollback bar. */
   searchOpen?: boolean;
   onCloseSearch?: () => void;
@@ -76,6 +94,10 @@ export function Terminal({
   title,
   resumeId,
   fontSize = 13,
+  cursorStyle = "block",
+  cursorBlink = true,
+  scrollback = 5000,
+  copyOnSelect = false,
   searchOpen = false,
   onCloseSearch,
   onExit,
@@ -95,13 +117,21 @@ export function Terminal({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [booting, setBooting] = useState(true);
   const [query, setQuery] = useState("");
+  const [matches, setMatches] = useState<{ index: number; count: number } | null>(null);
+
+  // Read live inside the selection handler so toggling the setting applies
+  // without rebinding (the mount effect runs once).
+  const copyOnSelectRef = useRef(copyOnSelect);
+  copyOnSelectRef.current = copyOnSelect;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const term = new XTerm({
-      cursorBlink: true,
+      cursorBlink,
+      cursorStyle,
+      scrollback,
       fontFamily: '"IBM Plex Mono", "Cascadia Code", Menlo, Consolas, monospace',
       fontSize,
       theme: { background: TERM_WELL, foreground: "#ece5d8" },
@@ -120,6 +150,11 @@ export function Terminal({
     termRef.current = term;
     fitRef.current = fit;
     searchRef.current = search;
+
+    // Fires on every decorated find — drives the "n/total" readout.
+    const results = search.onDidChangeResults(({ resultIndex, resultCount }) =>
+      setMatches({ index: resultIndex, count: resultCount }),
+    );
 
     registerScrollback?.(() => {
       const buf = term.buffer.active;
@@ -216,6 +251,25 @@ export function Terminal({
       if (sessionId) void api.writeTerminal(sessionId, data);
     });
 
+    const selectSub = term.onSelectionChange(() => {
+      if (!copyOnSelectRef.current) return;
+      const selection = term.getSelection();
+      if (selection) navigator.clipboard.writeText(selection).catch(() => {});
+    });
+
+    // Right-click pastes (standard terminal behavior). term.paste() goes
+    // through onData above, so broadcast/auto-title interception still applies.
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      navigator.clipboard
+        .readText()
+        .then((text) => {
+          if (text) term.paste(text);
+        })
+        .catch(() => {});
+    };
+    container.addEventListener("contextmenu", onContextMenu);
+
     const resizeObserver = new ResizeObserver(() => {
       try {
         fit.fit();
@@ -230,7 +284,10 @@ export function Terminal({
       disposed = true;
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
+      container.removeEventListener("contextmenu", onContextMenu);
       dataSub.dispose();
+      selectSub.dispose();
+      results.dispose();
       registerScrollback?.(null);
       if (sessionId) void api.killTerminal(sessionId).catch(() => {});
       term.dispose();
@@ -257,6 +314,15 @@ export function Terminal({
     if (id) void api.resizeTerminal(id, term.rows, term.cols);
   }, [fontSize]);
 
+  // Cursor and scrollback changes apply live too (no resize needed).
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    if (term.options.cursorStyle !== cursorStyle) term.options.cursorStyle = cursorStyle;
+    if (term.options.cursorBlink !== cursorBlink) term.options.cursorBlink = cursorBlink;
+    if (term.options.scrollback !== scrollback) term.options.scrollback = scrollback;
+  }, [cursorStyle, cursorBlink, scrollback]);
+
   // Focus the search box when the bar opens; return focus to the terminal on close.
   useEffect(() => {
     if (searchOpen) {
@@ -264,6 +330,7 @@ export function Terminal({
       searchInputRef.current?.select();
     } else {
       searchRef.current?.clearDecorations();
+      setMatches(null);
       termRef.current?.focus();
     }
   }, [searchOpen]);
@@ -271,58 +338,82 @@ export function Terminal({
   const find = (dir: "next" | "prev") => {
     const search = searchRef.current;
     if (!search || !query) return;
-    if (dir === "next") search.findNext(query);
-    else search.findPrevious(query);
+    if (dir === "next") search.findNext(query, { decorations: FIND_DECORATIONS });
+    else search.findPrevious(query, { decorations: FIND_DECORATIONS });
   };
 
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full overflow-hidden" />
       {searchOpen && (
-        <div className="glass-strong absolute right-2 top-2 z-10 flex items-center gap-1 rounded-xl border border-[var(--glass-border)] py-1 pl-2 pr-1">
-          <input
-            ref={searchInputRef}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              if (e.target.value) searchRef.current?.findNext(e.target.value, { incremental: true });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") find(e.shiftKey ? "prev" : "next");
-              else if (e.key === "Escape") onCloseSearch?.();
-              e.stopPropagation();
-            }}
-            placeholder="Find…"
-            className="w-40 bg-transparent font-mono text-[12px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-faint)]"
-          />
-          <button
-            type="button"
-            onClick={() => find("prev")}
-            title="Previous match (Shift+Enter)"
-            className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
-          >
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M6 14l6-6 6 6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => find("next")}
-            title="Next match (Enter)"
-            className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
-          >
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M6 10l6 6 6-6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => onCloseSearch?.()}
-            title="Close (Esc)"
-            className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
-          >
-            <IconClose size={13} />
-          </button>
+        <div
+          className="absolute inset-0 z-10 flex items-start justify-center bg-black/25 pt-12"
+          onMouseDown={(e) => {
+            // Backdrop click closes; clicks inside the panel don't bubble here.
+            if (e.target === e.currentTarget) onCloseSearch?.();
+          }}
+        >
+          <div className="glass-strong flex w-[min(460px,calc(100%-32px))] items-center gap-1.5 rounded-2xl border border-[var(--glass-border)] py-1.5 pl-3 pr-1.5 shadow-[var(--shadow-pop)]">
+            <span className="shrink-0 text-[var(--color-text-faint)]">
+              <IconSearch size={14} />
+            </span>
+            <input
+              ref={searchInputRef}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (e.target.value) {
+                  searchRef.current?.findNext(e.target.value, {
+                    incremental: true,
+                    decorations: FIND_DECORATIONS,
+                  });
+                } else {
+                  searchRef.current?.clearDecorations();
+                  setMatches(null);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") find(e.shiftKey ? "prev" : "next");
+                else if (e.key === "Escape") onCloseSearch?.();
+                e.stopPropagation();
+              }}
+              placeholder="Find in scrollback…"
+              className="min-w-0 flex-1 bg-transparent font-mono text-[12.5px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-faint)]"
+            />
+            {query && matches && (
+              <span className="shrink-0 font-mono text-[11px] text-[var(--color-text-faint)]">
+                {matches.count > 0 ? `${matches.index + 1}/${matches.count}` : "0/0"}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => find("prev")}
+              title="Previous match (Shift+Enter)"
+              className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+            >
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 14l6-6 6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => find("next")}
+              title="Next match (Enter)"
+              className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+            >
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 10l6 6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => onCloseSearch?.()}
+              title="Close (Esc)"
+              className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+            >
+              <IconClose size={13} />
+            </button>
+          </div>
         </div>
       )}
       {booting && (

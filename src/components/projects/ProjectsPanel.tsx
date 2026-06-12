@@ -1,4 +1,4 @@
-import { IconFolder, IconFolderPlus, IconPlay, IconTrash } from "../icons";
+import { IconDiff, IconFolder, IconFolderPlus, IconPlay, IconTrash } from "../icons";
 import type { Project } from "../../types";
 
 interface ProjectsPanelProps {
@@ -8,6 +8,8 @@ interface ProjectsPanelProps {
   onEditProject: (project: Project) => void;
   /** Launch a CLI session in the project (play button). */
   onLaunchProject: (project: Project) => void;
+  /** Show the project's git changes (diff button). */
+  onDiffProject: (project: Project) => void;
   /** Remove the project from the saved list. */
   onRemoveProject: (project: Project) => void;
 }
@@ -17,6 +19,7 @@ export function ProjectsPanel({
   onAddProject,
   onEditProject,
   onLaunchProject,
+  onDiffProject,
   onRemoveProject,
 }: ProjectsPanelProps) {
   return (
@@ -68,6 +71,17 @@ export function ProjectsPanel({
                     className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)]"
                   >
                     <IconPlay size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDiffProject(project);
+                    }}
+                    title="View git changes"
+                    className="rounded p-1 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)]"
+                  >
+                    <IconDiff size={13} />
                   </button>
                   <button
                     type="button"

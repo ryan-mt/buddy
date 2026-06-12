@@ -8,7 +8,9 @@ export function EmptyState() {
   const clisError = useApp((s) => s.clisError);
   const setInstallOpen = useApp((s) => s.setInstallOpen);
   const restorable = useApp((s) => s.restorable);
+  const restoreMode = useApp((s) => s.settings.restoreOnLaunch);
   const hasCli = clis.some((c) => c.available);
+  const offerRestore = restoreMode === "ask";
 
   const restoreTitles = restorable
     ? restorable.sessions
@@ -37,7 +39,7 @@ export function EmptyState() {
           <IconDownload size={15} /> Install a CLI
         </button>
       )}
-      {hasCli && restorable && (
+      {hasCli && restorable && offerRestore && (
         <div className="glass-strong relative mt-2 flex flex-col items-center gap-2.5 rounded-2xl border border-[var(--glass-border)] px-6 py-4">
           <span className="text-[13px] font-medium">
             Previous workspace — {restorable.sessions.length} session

@@ -30,7 +30,8 @@ pub fn detect(kind: CliKind) -> CliInfo {
     }
 }
 
-fn locate(kind: CliKind) -> Option<PathBuf> {
+/// Find a CLI's binary without probing its version (cheap enough per call).
+pub fn locate(kind: CliKind) -> Option<PathBuf> {
     if let Ok(path) = which::which(kind.binary()) {
         return Some(path);
     }

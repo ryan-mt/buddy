@@ -1,0 +1,182 @@
+/* ---------------------------------------------------------------------------
+   Built-in API chat: markdown body, reasoning trace, streaming caret.
+   Kept out of index.css so the theme file stays about tokens & chrome.
+--------------------------------------------------------------------------- */
+
+/* Markdown body for assistant replies. */
+.chat-md {
+  font-size: 13.5px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.chat-md > :first-child {
+  margin-top: 0;
+}
+.chat-md > :last-child {
+  margin-bottom: 0;
+}
+.chat-md p {
+  margin: 0.5em 0;
+}
+.chat-md h1,
+.chat-md h2,
+.chat-md h3,
+.chat-md h4 {
+  margin: 1em 0 0.4em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.chat-md h1 {
+  font-size: 17px;
+}
+.chat-md h2 {
+  font-size: 15.5px;
+}
+.chat-md h3,
+.chat-md h4 {
+  font-size: 14px;
+}
+.chat-md ul,
+.chat-md ol {
+  margin: 0.5em 0;
+  padding-left: 1.4em;
+}
+.chat-md ul {
+  list-style: disc;
+}
+.chat-md ol {
+  list-style: decimal;
+}
+.chat-md li {
+  margin: 0.2em 0;
+}
+.chat-md a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Inline link chip — shared by user bubbles (React) and assistant markdown.
+   GitHub mark + shortened reference for github.com, globe + bare URL else. */
+.link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+  max-width: 100%;
+  padding: 0.05em 0.5em 0.05em 0.4em;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+  vertical-align: -0.12em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.link-chip:hover {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+.link-chip svg {
+  flex: none;
+}
+.link-chip .link-chip-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.chat-md a.link-chip {
+  text-decoration: none;
+}
+.chat-md blockquote {
+  margin: 0.6em 0;
+  border-left: 2px solid var(--color-accent-dim);
+  padding-left: 0.9em;
+  color: var(--color-text-muted);
+}
+.chat-md code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--color-surface-2);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+.chat-md pre {
+  margin: 0.6em 0;
+  padding: 0.75em 0.9em;
+  background: var(--color-term-well);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.chat-md pre code {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  color: var(--color-text);
+}
+.chat-md table {
+  margin: 0.6em 0;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.chat-md th,
+.chat-md td {
+  border: 1px solid var(--color-border-soft);
+  padding: 0.3em 0.7em;
+  text-align: left;
+}
+.chat-md th {
+  background: var(--color-surface-2);
+  font-weight: 600;
+}
+.chat-md hr {
+  margin: 0.9em 0;
+  border: none;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+/* Collapsible reasoning trace above a reply. */
+.chat-thinking {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  padding: 0.45em 0.8em;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+.chat-thinking summary {
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+.chat-thinking summary:hover {
+  color: var(--color-text);
+}
+
+/* Composer link highlight — the overlay mirrors the textarea's text (which is
+   transparent above it), so links can carry color without touching metrics. */
+.composer-overlay {
+  color: var(--color-text);
+  pointer-events: none;
+}
+.composer-link {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Streaming caret — a still bar with a soft halo (state shows as glow,
+   never a blink). */
+.chat-caret {
+  width: 7px;
+  height: 14px;
+  border-radius: 2.5px;
+  background: var(--color-accent);
+  box-shadow: 0 0 7px 1px color-mix(in srgb, var(--color-accent) 65%, transparent);
+}

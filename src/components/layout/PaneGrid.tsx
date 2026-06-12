@@ -56,7 +56,7 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
   const setSearchOpen = useApp((s) => s.setSearchOpen);
   const setActive = useApp((s) => s.selectSession);
   const resizeSplit = useApp((s) => s.resizeSplit);
-  const fontSize = useApp((s) => s.settings.terminalFontSize);
+  const settings = useApp((s) => s.settings);
   const activity = useApp((s) => s.activity);
   const broadcast = useApp((s) => s.broadcast);
 
@@ -136,7 +136,11 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
                 profileId={session.profileId}
                 title={session.title}
                 resumeId={session.resumeId}
-                fontSize={fontSize}
+                fontSize={settings.terminalFontSize}
+                cursorStyle={settings.terminalCursorStyle}
+                cursorBlink={settings.terminalCursorBlink}
+                scrollback={settings.terminalScrollback}
+                copyOnSelect={settings.terminalCopyOnSelect}
                 searchOpen={searchOpen && session.id === activeId}
                 onCloseSearch={() => setSearchOpen(false)}
                 onExit={(code) => useApp.getState().markExited(session.id, code)}

@@ -14,11 +14,17 @@ import { SettingsModal } from "./components/SettingsModal";
 import { useApp } from "./store";
 
 const Workspace = lazy(() => import("./components/editor/Workspace"));
+const ChatView = lazy(() => import("./components/chat/ChatView"));
+const DiffViewer = lazy(() =>
+  import("./components/diff/DiffViewer").then((m) => ({ default: m.DiffViewer })),
+);
 
 export default function App() {
   const sessions = useApp((s) => s.sessions);
+  const view = useApp((s) => s.view);
   const workspace = useApp((s) => s.workspace);
   const transcript = useApp((s) => s.transcript);
+  const diffView = useApp((s) => s.diffView);
   const theme = useApp((s) => s.theme);
   const settings = useApp((s) => s.settings);
   const clis = useApp((s) => s.clis);
@@ -31,10 +37,14 @@ export default function App() {
   // Initial loads.
   useEffect(() => {
     const { refreshClis, refreshProjects, refreshProfiles, refreshHistory } = useApp.getState();
-    void refreshClis();
+    // Update check rides the detection pass — toasts when something is newer.
+    void refreshClis().then(() => useApp.getState().checkCliUpdates(true));
     void refreshProjects();
     void refreshProfiles();
     void refreshHistory();
+    // Reopen the previous workspace without asking when settings say so.
+    const s = useApp.getState();
+    if (s.settings.restoreOnLaunch === "always" && s.restorable) s.restoreWorkspace();
   }, []);
 
   // Global shortcuts. Ctrl/Cmd+Shift avoids clobbering the terminal's own keys,
@@ -43,8 +53,17 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
-      if (!mod || !e.shiftKey || e.altKey) return;
+      if (!mod || e.altKey) return;
       const s = useApp.getState();
+      // Ctrl/Cmd+K — the one chord without Shift: find in terminal.
+      if (!e.shiftKey) {
+        if (e.code === "KeyK" && s.activeId) {
+          s.setSearchOpen(!s.searchOpen);
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
       let handled = true;
       if (e.code === "KeyT") {
         if (s.clis.some((c) => c.available)) s.openModal({});
@@ -56,8 +75,24 @@ export default function App() {
         s.toggleZoom();
       } else if (e.code === "KeyB") {
         s.toggleBroadcast();
+      } else if (e.code === "KeyC") {
+        s.setView(s.view === "chat" ? "cli" : "chat");
       } else if (e.code === "KeyP") {
         if (s.sessions.some((t) => !t.exited)) s.setComposerOpen(!s.composerOpen);
+      } else if (e.code === "KeyG") {
+        // Git changes for the open workspace, else the active session's folder.
+        if (s.diffView) {
+          s.closeDiff();
+        } else {
+          const active = s.sessions.find((t) => t.id === s.activeId);
+          const target =
+            s.workspace ??
+            (active?.cwd
+              ? { rootPath: active.cwd, rootName: active.cwd.split(/[\\/]+/).filter(Boolean).pop() ?? active.cwd }
+              : null);
+          if (target) s.openDiff(target);
+          else s.pushToast("No folder to diff — open a workspace or a session with a folder", "error");
+        }
       } else if (e.code === "Comma") {
         s.setSettingsOpen(true);
       } else if (/^Digit[1-9]$/.test(e.code)) {
@@ -83,12 +118,30 @@ export default function App() {
         <MainHeader />
 
         <div className="relative flex-1">
-          {sessions.length === 0 && !workspace && !transcript && <EmptyState />}
+          {sessions.length === 0 && !workspace && !transcript && view !== "chat" && (
+            <EmptyState />
+          )}
 
-          <PaneGrid hidden={!!workspace || !!transcript} />
+          <PaneGrid hidden={!!workspace || !!transcript || view === "chat"} />
 
+          {view === "chat" && (
+            <div className="absolute inset-0 z-10">
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center bg-[var(--color-bg)] text-[13px] text-[var(--color-text-faint)]">
+                    Loading chat…
+                  </div>
+                }
+              >
+                <ChatView />
+              </Suspense>
+            </div>
+          )}
+
+          {/* Kept mounted but hidden under the chat view — display:none stops
+              Monaco from painting (overlap + lag) without dropping tab state. */}
           {workspace && (
-            <div className="absolute inset-0">
+            <div className={`absolute inset-0 ${view === "chat" ? "hidden" : ""}`}>
               <Suspense
                 fallback={
                   <div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-faint)]">
@@ -108,12 +161,31 @@ export default function App() {
         </div>
 
         {transcript && (
-          <div className="absolute inset-0 z-20">
+          <div className={`absolute inset-0 z-20 ${view === "chat" ? "hidden" : ""}`}>
             <TranscriptViewer
               key={transcript.id}
               session={transcript}
               onClose={() => useApp.getState().viewTranscript(null)}
             />
+          </div>
+        )}
+
+        {diffView && (
+          <div className={`absolute inset-0 z-20 ${view === "chat" ? "hidden" : ""}`}>
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center bg-[var(--color-bg)] text-[13px] text-[var(--color-text-faint)]">
+                  Loading changes…
+                </div>
+              }
+            >
+              <DiffViewer
+                key={diffView.rootPath}
+                rootPath={diffView.rootPath}
+                rootName={diffView.rootName}
+                onClose={() => useApp.getState().closeDiff()}
+              />
+            </Suspense>
           </div>
         )}
       </main>

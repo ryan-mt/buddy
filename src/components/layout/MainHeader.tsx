@@ -5,6 +5,7 @@ import {
   IconClose,
   IconCode,
   IconCollapse,
+  IconDiff,
   IconDownload,
   IconExpand,
   IconSearch,
@@ -14,8 +15,9 @@ import {
 } from "../icons";
 import { AGENT_COLOR, AGENT_LABEL, AGENT_LOGO } from "../../lib/agents";
 import { api } from "../../lib/bindings";
+import { ChatHeader } from "../chat/ChatHeader";
 import { readScrollback } from "../../lib/terminalRegistry";
-import { errorMessage, useApp } from "../../store";
+import { basename, errorMessage, useApp } from "../../store";
 
 const headerBtn =
   "rounded-md p-1.5 text-[var(--color-text-faint)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]";
@@ -111,6 +113,7 @@ function SessionTitle({ id, title }: { id: string; title: string }) {
 }
 
 export function MainHeader() {
+  const view = useApp((s) => s.view);
   const sessions = useApp((s) => s.sessions);
   const activeId = useApp((s) => s.activeId);
   const layout = useApp((s) => s.layout);
@@ -131,7 +134,9 @@ export function MainHeader() {
 
   return (
     <header className="glass flex h-11 shrink-0 items-center gap-2.5 border-b border-[var(--glass-border)] px-4">
-      {workspace ? (
+      {view === "chat" ? (
+        <ChatHeader />
+      ) : workspace ? (
         <>
           <span className="text-[var(--color-accent)]">
             <IconCode size={15} />
@@ -145,9 +150,17 @@ export function MainHeader() {
           </span>
           <button
             type="button"
+            onClick={() => useApp.getState().openDiff(workspace)}
+            title="View git changes (Ctrl+Shift+G)"
+            className={`ml-3 ${headerBtn}`}
+          >
+            <IconDiff size={16} />
+          </button>
+          <button
+            type="button"
             onClick={closeWorkspace}
             title="Close workspace"
-            className={`ml-3 ${headerBtn}`}
+            className={headerBtn}
           >
             <IconClose size={16} />
           </button>
@@ -199,10 +212,25 @@ export function MainHeader() {
             {activeSession.cwd ?? "~"}
           </span>
           <div className="flex items-center gap-0.5 pl-3">
+            {activeSession.cwd && (
+              <button
+                type="button"
+                onClick={() =>
+                  useApp.getState().openDiff({
+                    rootPath: activeSession.cwd!,
+                    rootName: basename(activeSession.cwd!),
+                  })
+                }
+                title="View git changes (Ctrl+Shift+G)"
+                className={headerBtn}
+              >
+                <IconDiff size={16} />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setSearchOpen(!searchOpen)}
-              title="Find in terminal (⌃⇧F)"
+              title="Find in terminal (Ctrl+K)"
               className={headerBtn}
             >
               <IconSearch size={16} />
@@ -210,7 +238,7 @@ export function MainHeader() {
             <button
               type="button"
               onClick={() => useApp.getState().setComposerOpen(true)}
-              title="Prompt composer (⌃⇧P)"
+              title="Prompt composer (Ctrl+Shift+P)"
               className={headerBtn}
             >
               <IconSend size={16} />
@@ -229,8 +257,8 @@ export function MainHeader() {
                 onClick={toggleBroadcast}
                 title={
                   broadcast
-                    ? "Broadcast on — typing reaches every pane (⌃⇧B)"
-                    : "Broadcast keystrokes to all panes (⌃⇧B)"
+                    ? "Broadcast on — typing reaches every pane (Ctrl+Shift+B)"
+                    : "Broadcast keystrokes to all panes (Ctrl+Shift+B)"
                 }
                 className={
                   broadcast
@@ -245,7 +273,7 @@ export function MainHeader() {
               <button
                 type="button"
                 onClick={toggleZoom}
-                title={zoomedId ? "Restore panes (⌃⇧Z)" : "Zoom pane (⌃⇧Z)"}
+                title={zoomedId ? "Restore panes (Ctrl+Shift+Z)" : "Zoom pane (Ctrl+Shift+Z)"}
                 className={headerBtn}
               >
                 {zoomedId ? <IconCollapse size={16} /> : <IconExpand size={16} />}
