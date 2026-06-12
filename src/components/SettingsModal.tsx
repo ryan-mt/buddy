@@ -52,6 +52,8 @@ const SHORTCUTS: [string, string][] = [
   ["Ctrl+Shift+Z", "Zoom pane"],
   ["Ctrl+Shift+B", "Broadcast input"],
   ["Ctrl+Shift+P", "Prompt queue"],
+  ["Ctrl+Shift+O", "Pulse overview"],
+  ["Ctrl+Shift+A", "Jump to waiting agent"],
   ["Ctrl+Shift+1…9", "Switch session"],
   ["Ctrl+Shift+,", "Settings"],
 ];

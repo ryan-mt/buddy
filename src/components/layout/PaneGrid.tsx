@@ -3,7 +3,13 @@ import { Terminal } from "../terminal/Terminal";
 import { SplitDividers } from "./SplitDividers";
 import { IconRestart } from "../icons";
 import { computeLayout, type Rect } from "../../lib/layout";
-import { registerScrollback, unregisterScrollback } from "../../lib/terminalRegistry";
+import { recordPulse } from "../../lib/pulse";
+import {
+  registerScrollback,
+  registerTail,
+  unregisterScrollback,
+  unregisterTail,
+} from "../../lib/terminalRegistry";
 import { useApp } from "../../store";
 
 const GUTTER = 6;
@@ -47,7 +53,7 @@ function trackFirstPrompt(id: string, data: string) {
  * a PTY. Panes that aren't in the visible layout (or are hidden behind a
  * zoomed pane) stay mounted with `display: none`.
  */
-export function PaneGrid({ hidden }: { hidden: boolean }) {
+export function PaneGrid({ hidden, dockVisible }: { hidden: boolean; dockVisible: boolean }) {
   const sessions = useApp((s) => s.sessions);
   const layout = useApp((s) => s.layout);
   const activeId = useApp((s) => s.activeId);
@@ -90,7 +96,16 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
   const zoomed = zoomedId && rectBySession.has(zoomedId) ? zoomedId : null;
 
   return (
-    <div ref={boxRef} className="absolute inset-2" style={hidden ? { display: "none" } : undefined}>
+    <div
+      ref={boxRef}
+      className="absolute inset-2"
+      // The agent dock floats over the bottom edge — give the panes room so it
+      // never covers a TUI's input line.
+      style={{
+        ...(dockVisible ? { bottom: 60 } : null),
+        ...(hidden ? { display: "none" } : null),
+      }}
+    >
       {sessions.map((session) => {
         let rect = rectBySession.get(session.id);
         if (zoomed) {
@@ -145,7 +160,10 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
                 onCloseSearch={() => setSearchOpen(false)}
                 onExit={(code) => useApp.getState().markExited(session.id, code)}
                 onReady={(ptyId) => useApp.getState().setPtyId(session.id, ptyId)}
-                onOutput={() => useApp.getState().reportOutput(session.id)}
+                onOutput={(bytes) => {
+                  recordPulse(session.id, bytes);
+                  useApp.getState().reportOutput(session.id);
+                }}
                 onBell={() => useApp.getState().reportBell(session.id)}
                 interceptData={(data) => {
                   trackFirstPrompt(session.id, data);
@@ -157,6 +175,10 @@ export function PaneGrid({ hidden }: { hidden: boolean }) {
                 registerScrollback={(read) => {
                   if (read) registerScrollback(session.id, read);
                   else unregisterScrollback(session.id);
+                }}
+                registerTail={(read) => {
+                  if (read) registerTail(session.id, read);
+                  else unregisterTail(session.id);
                 }}
               />
             </div>

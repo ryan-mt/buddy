@@ -26,6 +26,8 @@ export interface Settings {
   defaultPermission: string;
   /** Initial Claude effort level pre-selected in the New Session modal. */
   defaultEffort: string;
+  /** Sidebar shown as the narrow icon rail (Ctrl+Shift+S). */
+  sidebarCollapsed: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   restoreOnLaunch: "ask",
   defaultPermission: "default",
   defaultEffort: "default",
+  sidebarCollapsed: false,
 };
 
 export const FONT_SIZE_MIN = 10;
@@ -81,6 +84,7 @@ export function sanitizeSettings(raw: Partial<Settings>): Settings {
     defaultPermission:
       typeof raw.defaultPermission === "string" ? raw.defaultPermission : d.defaultPermission,
     defaultEffort: typeof raw.defaultEffort === "string" ? raw.defaultEffort : d.defaultEffort,
+    sidebarCollapsed: bool(raw.sidebarCollapsed, d.sidebarCollapsed),
   };
 }
 

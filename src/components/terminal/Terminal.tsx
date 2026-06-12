@@ -64,14 +64,17 @@ interface TerminalProps {
   onExit?: (code: number | null) => void;
   /** The backend PTY session is live; its id is what Claude can later resume. */
   onReady?: (ptyId: string) => void;
-  /** Called on every output chunk — drives the live activity status. */
-  onOutput?: () => void;
+  /** Called on every output chunk with its byte count — drives the live
+   *  activity status and the Pulse heartbeat. */
+  onOutput?: (bytes: number) => void;
   /** The program rang the terminal bell (BEL). */
   onBell?: () => void;
   /** Return true to swallow a keystroke that was handled elsewhere (broadcast). */
   interceptData?: (data: string) => boolean;
   /** Receives a plain-text scrollback reader on mount, null on dispose. */
   registerScrollback?: (read: (() => string) | null) => void;
+  /** Receives a cheap last-N-lines reader on mount, null on dispose. */
+  registerTail?: (read: ((maxLines: number) => string) | null) => void;
   /** Override how the PTY session is started (defaults to launching `cli`).
    *  Used by the installer to run an install command in the same machinery. */
   start?: (channel: Channel<TerminalMsg>, rows: number, cols: number) => Promise<string>;
@@ -106,6 +109,7 @@ export function Terminal({
   onBell,
   interceptData,
   registerScrollback,
+  registerTail,
   start,
   bootingLabel,
 }: TerminalProps) {
@@ -166,6 +170,26 @@ export function Terminal({
       return lines.join("\n");
     });
 
+    // Only walks the buffer's tail (skipping the blank viewport rows below the
+    // cursor), so polling it every second stays cheap even with big scrollback.
+    registerTail?.((maxLines) => {
+      const buf = term.buffer.active;
+      let end = buf.length;
+      let scanned = 0;
+      while (
+        end > 0 &&
+        scanned++ < 500 &&
+        (buf.getLine(end - 1)?.translateToString(true) ?? "") === ""
+      ) {
+        end--;
+      }
+      const lines: string[] = [];
+      for (let i = Math.max(0, end - maxLines); i < end; i++) {
+        lines.push(buf.getLine(i)?.translateToString(true) ?? "");
+      }
+      return lines.join("\n");
+    });
+
     let sessionId: string | null = null;
     let disposed = false;
     let booted = false;
@@ -179,7 +203,7 @@ export function Terminal({
         }
         const bytes = decodeBase64(msg.data);
         if (onBell && bytes.includes(7)) onBell();
-        onOutput?.();
+        onOutput?.(bytes.length);
         term.write(bytes);
       } else {
         onExit?.(msg.code);
@@ -289,6 +313,7 @@ export function Terminal({
       selectSub.dispose();
       results.dispose();
       registerScrollback?.(null);
+      registerTail?.(null);
       if (sessionId) void api.killTerminal(sessionId).catch(() => {});
       term.dispose();
       termRef.current = null;

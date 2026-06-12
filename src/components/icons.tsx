@@ -116,6 +116,15 @@ export function IconSparkle({ size = 16, className }: IconProps) {
   );
 }
 
+/** A heartbeat trace — the Pulse mission-control overlay. */
+export function IconPulse({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M3 12h3.5l2.3-5.5 4 11 2.4-5.5H21" />
+    </svg>
+  );
+}
+
 export function IconChevron({ size = 16, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
@@ -437,6 +446,38 @@ export function IconBranch({ size = 16, className }: IconProps) {
       <circle cx="17" cy="7.5" r="2.1" />
       <path d="M7 8.1v7.8" />
       <path d="M17 9.6c-.2 3.4-3.4 4.6-7.6 4.9" />
+    </svg>
+  );
+}
+
+/** Pushpin: keep the window on top of everything else. */
+export function IconPin({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <path d="M9.5 4h5l-.7 5.2 2.7 2.8H7.5l2.7-2.8z" />
+      <path d="M12 12v7.5" />
+    </svg>
+  );
+}
+
+/** Keyboard: the shortcut cheatsheet. */
+export function IconKeyboard({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <rect x="3" y="6.5" width="18" height="11" rx="2" />
+      <path d="M6.5 10h.01M10.2 10h.01M13.8 10h.01M17.5 10h.01" />
+      <path d="M8 14h8" />
+    </svg>
+  );
+}
+
+/** Sidebar rail: a frame with its left panel — collapse/expand the sidebar. */
+export function IconRail({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...STROKE}>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M9.5 5v14" />
+      <path d="M6.5 9h.01M6.5 12h.01" />
     </svg>
   );
 }

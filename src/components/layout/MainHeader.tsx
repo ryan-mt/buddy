@@ -8,6 +8,8 @@ import {
   IconDiff,
   IconDownload,
   IconExpand,
+  IconPin,
+  IconPulse,
   IconSearch,
   IconSend,
   IconSplitDown,
@@ -127,6 +129,10 @@ export function MainHeader() {
   const broadcast = useApp((s) => s.broadcast);
   const toggleBroadcast = useApp((s) => s.toggleBroadcast);
   const activeActivity = useApp((s) => (s.activeId ? s.activity[s.activeId] : undefined));
+  const alwaysOnTop = useApp((s) => s.alwaysOnTop);
+  const waitingCount = useApp(
+    (s) => s.sessions.filter((t) => s.activity[t.id] === "attention").length,
+  );
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null;
   const ActiveLogo = activeSession ? AGENT_LOGO[activeSession.cli] : null;
@@ -208,10 +214,48 @@ export function MainHeader() {
               <span className="text-[11px] text-[var(--color-running)]">working…</span>
             )
           )}
+          {waitingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => useApp.getState().jumpToAttention()}
+              title="Jump to the agent waiting on you (Ctrl+Shift+A)"
+              className="flex items-center gap-1.5 rounded-full bg-[var(--color-warning-dim)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-warning)] transition hover:brightness-110"
+            >
+              <span
+                className="dot-ring h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]"
+                style={{ color: "var(--color-warning)" }}
+              />
+              {waitingCount} waiting
+            </button>
+          )}
           <span className="ml-auto truncate pl-4 font-mono text-[11px] text-[var(--color-text-faint)]">
             {activeSession.cwd ?? "~"}
           </span>
           <div className="flex items-center gap-0.5 pl-3">
+            <button
+              type="button"
+              onClick={() => useApp.getState().toggleAlwaysOnTop()}
+              title={
+                alwaysOnTop
+                  ? "Pinned above other windows — click to unpin"
+                  : "Pin buddy above other windows"
+              }
+              className={
+                alwaysOnTop
+                  ? "rounded-md bg-[var(--color-surface-2)] p-1.5 text-[var(--color-accent)] transition"
+                  : headerBtn
+              }
+            >
+              <IconPin size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => useApp.getState().setPulseOpen(true)}
+              title="Pulse — every agent at a glance (Ctrl+Shift+O)"
+              className={headerBtn}
+            >
+              <IconPulse size={16} />
+            </button>
             {activeSession.cwd && (
               <button
                 type="button"

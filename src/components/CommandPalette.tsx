@@ -92,6 +92,20 @@ function buildEntries(): PaletteEntry[] {
       section: "Actions",
       run: () => s.setComposerOpen(true),
     },
+    s.sessions.length > 0 && {
+      id: "act:pulse",
+      label: "Pulse — every agent at a glance",
+      hint: "overview mission control monitor live",
+      section: "Actions",
+      run: () => s.setPulseOpen(true),
+    },
+    s.sessions.some((t) => s.activity[t.id] === "attention") && {
+      id: "act:attention",
+      label: "Jump to waiting agent",
+      hint: "needs you attention input",
+      section: "Actions",
+      run: () => s.jumpToAttention(),
+    },
     {
       id: "act:theme",
       label: `Next theme (${themeInfo(nextTheme(s.theme)).label})`,
@@ -105,6 +119,27 @@ function buildEntries(): PaletteEntry[] {
       hint: "preferences options",
       section: "Actions",
       run: () => s.setSettingsOpen(true),
+    },
+    {
+      id: "act:shortcuts",
+      label: "Keyboard shortcuts",
+      hint: "cheatsheet keys bindings help",
+      section: "Actions",
+      run: () => s.setShortcutsOpen(true),
+    },
+    {
+      id: "act:sidebar",
+      label: s.settings.sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar to rail",
+      hint: "rail toggle narrow",
+      section: "Actions",
+      run: () => s.toggleSidebar(),
+    },
+    {
+      id: "act:pin",
+      label: s.alwaysOnTop ? "Unpin window" : "Pin window on top",
+      hint: "always float above",
+      section: "Actions",
+      run: () => s.toggleAlwaysOnTop(),
     },
     {
       id: "act:install",

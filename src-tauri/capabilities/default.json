@@ -8,6 +8,7 @@
     "opener:default",
     "dialog:allow-open",
     "dialog:allow-save",
-    "core:window:allow-request-user-attention"
+    "core:window:allow-request-user-attention",
+    "core:window:allow-set-always-on-top"
   ]
 }

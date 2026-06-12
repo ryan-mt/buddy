@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { MainHeader } from "./components/layout/MainHeader";
 import { PaneGrid } from "./components/layout/PaneGrid";
+import { AgentDock } from "./components/layout/AgentDock";
 import { EmptyState } from "./components/layout/EmptyState";
 import { Toasts } from "./components/Toasts";
 import { NewSessionModal } from "./components/sessions/NewSessionModal";
@@ -12,6 +13,7 @@ import { TranscriptViewer } from "./components/sessions/TranscriptViewer";
 import { ProfileModal } from "./components/profiles/ProfileModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { CommandPalette } from "./components/CommandPalette";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import { useApp } from "./store";
 
 const Workspace = lazy(() => import("./components/editor/Workspace"));
@@ -19,6 +21,7 @@ const ChatView = lazy(() => import("./components/chat/ChatView"));
 const DiffViewer = lazy(() =>
   import("./components/diff/DiffViewer").then((m) => ({ default: m.DiffViewer })),
 );
+const PulsePanel = lazy(() => import("./components/pulse/PulsePanel"));
 
 export default function App() {
   const sessions = useApp((s) => s.sessions);
@@ -26,6 +29,7 @@ export default function App() {
   const workspace = useApp((s) => s.workspace);
   const transcript = useApp((s) => s.transcript);
   const diffView = useApp((s) => s.diffView);
+  const pulseOpen = useApp((s) => s.pulseOpen);
   const theme = useApp((s) => s.theme);
   const settings = useApp((s) => s.settings);
   const clis = useApp((s) => s.clis);
@@ -82,6 +86,18 @@ export default function App() {
         s.setView(s.view === "chat" ? "cli" : "chat");
       } else if (e.code === "KeyP") {
         if (s.sessions.some((t) => !t.exited)) s.setComposerOpen(!s.composerOpen);
+      } else if (e.code === "KeyO") {
+        s.setPulseOpen(!s.pulseOpen);
+      } else if (e.code === "KeyA") {
+        s.jumpToAttention();
+      } else if (e.code === "KeyS") {
+        s.toggleSidebar();
+      } else if (e.code === "Slash") {
+        s.setShortcutsOpen(!s.shortcutsOpen);
+      } else if (e.code === "BracketRight") {
+        s.cycleSession(1);
+      } else if (e.code === "BracketLeft") {
+        s.cycleSession(-1);
       } else if (e.code === "KeyG") {
         // Git changes for the open workspace, else the active session's folder.
         if (s.diffView) {
@@ -125,7 +141,10 @@ export default function App() {
             <EmptyState />
           )}
 
-          <PaneGrid hidden={!!workspace || !!transcript || view === "chat"} />
+          <PaneGrid
+            hidden={!!workspace || !!transcript || view === "chat" || pulseOpen}
+            dockVisible={sessions.length > 0 && view !== "chat" && !pulseOpen}
+          />
 
           {view === "chat" && (
             <div className="absolute inset-0 z-10">
@@ -191,6 +210,22 @@ export default function App() {
             </Suspense>
           </div>
         )}
+
+        {pulseOpen && (
+          <div className="absolute inset-0 z-30">
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center bg-[var(--color-bg)] text-[13px] text-[var(--color-text-faint)]">
+                  Loading Pulse…
+                </div>
+              }
+            >
+              <PulsePanel />
+            </Suspense>
+          </div>
+        )}
+
+        <AgentDock />
       </main>
 
       <NewSessionModal
@@ -236,6 +271,7 @@ export default function App() {
       <ConfirmCloseDialog />
       <PromptComposer />
       <CommandPalette />
+      <ShortcutsOverlay />
       <Toasts />
     </div>
   );

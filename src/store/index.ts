@@ -36,6 +36,7 @@ import {
   type FormationSlot,
 } from "../lib/formations";
 import { loadSnippets, saveSnippets, type Snippet } from "../lib/snippets";
+import { clearPulse } from "../lib/pulse";
 import { describeBackup, parseBackup, serializeBackup } from "../lib/backup";
 import { loadChatPrefs, saveChatPrefs } from "../lib/chatPrefs";
 import { applyTheme, getInitialTheme, nextTheme, type Theme } from "../lib/theme";
@@ -116,6 +117,10 @@ interface AppState {
   closeSession: (id: string) => void;
   cancelClose: () => void;
   selectSession: (id: string) => void;
+  /** Focus the next/previous session in sidebar order, wrapping around. */
+  cycleSession: (dir: 1 | -1) => void;
+  /** Reorder the sidebar (drag & drop). Order drives Ctrl+Shift+1–9 and cycling. */
+  moveSession: (id: string, toIndex: number) => void;
   renameSession: (id: string, title: string) => void;
   markExited: (id: string, code: number | null) => void;
   /** Record the backend PTY id once the session is live (enables resume). */
@@ -130,6 +135,12 @@ interface AppState {
   activity: Record<string, ActivityState>;
   reportOutput: (id: string) => void;
   reportBell: (id: string) => void;
+
+  // --- Pulse (mission-control overlay over every agent) ---
+  pulseOpen: boolean;
+  setPulseOpen: (open: boolean) => void;
+  /** Focus the next session that's waiting on input (cycles past the active one). */
+  jumpToAttention: () => void;
 
   // --- broadcast (keystrokes fan out to every visible pane) ---
   broadcast: boolean;
@@ -204,6 +215,14 @@ interface AppState {
   setSearchOpen: (open: boolean) => void;
   paletteOpen: boolean;
   setPaletteOpen: (open: boolean) => void;
+  shortcutsOpen: boolean;
+  setShortcutsOpen: (open: boolean) => void;
+  /** Convenience over settings.sidebarCollapsed (persisted with the rest). */
+  toggleSidebar: () => void;
+
+  // --- window pin (always on top; per-launch, not persisted) ---
+  alwaysOnTop: boolean;
+  toggleAlwaysOnTop: () => void;
 
   // --- backup (settings, theme, snippets, formations, chat prefs as a file) ---
   exportBackup: () => Promise<void>;
@@ -242,6 +261,7 @@ function spawn(
     workspace: null,
     transcript: null,
     diffView: null,
+    pulseOpen: false,
     broadcast: state.broadcast && layout.kind === "split",
   };
 }
@@ -447,6 +467,7 @@ export const useApp = create<AppState>((set, get) => ({
       removeLeaf(layout, id) ??
       (remaining.length ? leaf(remaining[remaining.length - 1].id) : null);
     busySince.delete(id);
+    clearPulse(id);
     const nextQueued = { ...queued };
     delete nextQueued[id];
     set({
@@ -477,9 +498,34 @@ export const useApp = create<AppState>((set, get) => ({
       workspace: null,
       transcript: null,
       diffView: null,
+      pulseOpen: false,
       activity: nextActivity,
       broadcast: broadcast && nextLayout.kind === "split",
     });
+  },
+
+  cycleSession: (dir) => {
+    const { sessions, activeId } = get();
+    if (!sessions.length) return;
+    const idx = sessions.findIndex((s) => s.id === activeId);
+    const next =
+      idx === -1
+        ? sessions[dir === 1 ? 0 : sessions.length - 1]
+        : sessions[(idx + dir + sessions.length) % sessions.length];
+    set({ view: "cli" });
+    get().selectSession(next.id);
+  },
+
+  moveSession: (id, toIndex) => {
+    const { sessions } = get();
+    const from = sessions.findIndex((s) => s.id === id);
+    if (from === -1) return;
+    const to = Math.max(0, Math.min(toIndex, sessions.length - 1));
+    if (to === from) return;
+    const next = [...sessions];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    set({ sessions: next });
   },
 
   renameSession: (id, title) => {
@@ -599,6 +645,26 @@ export const useApp = create<AppState>((set, get) => ({
     if (id === activeId || activity[id] === "attention") return;
     set({ activity: { ...activity, [id]: "attention" } });
     flashTaskbar(true);
+  },
+
+  // --- Pulse ---
+  pulseOpen: false,
+  setPulseOpen: (pulseOpen) => set({ pulseOpen }),
+
+  // Visiting a waiting session acknowledges it (selectSession drops the flag),
+  // so repeated jumps walk through everyone who rang.
+  jumpToAttention: () => {
+    const { sessions, activity, activeId } = get();
+    const waiting = sessions.filter((s) => activity[s.id] === "attention");
+    if (!waiting.length) {
+      get().pushToast("No agent is waiting on you");
+      return;
+    }
+    const start = sessions.findIndex((s) => s.id === activeId);
+    const ordered = [...sessions.slice(start + 1), ...sessions.slice(0, start + 1)];
+    const next = ordered.find((s) => activity[s.id] === "attention") ?? waiting[0];
+    set({ view: "cli" });
+    get().selectSession(next.id);
   },
 
   // --- broadcast ---
@@ -725,6 +791,7 @@ export const useApp = create<AppState>((set, get) => ({
       workspace: null,
       transcript: null,
       diffView: null,
+      pulseOpen: false,
       broadcast: false,
     });
   },
@@ -902,12 +969,14 @@ export const useApp = create<AppState>((set, get) => ({
       workspace: { rootPath: project.path, rootName: project.name },
       transcript: null,
       diffView: null,
+      pulseOpen: false,
     }),
   closeWorkspace: () => set({ workspace: null }),
   transcript: null,
-  viewTranscript: (transcript) => set({ transcript, workspace: null, diffView: null }),
+  viewTranscript: (transcript) =>
+    set({ transcript, workspace: null, diffView: null, pulseOpen: false }),
   diffView: null,
-  openDiff: (diffView) => set({ diffView, transcript: null }),
+  openDiff: (diffView) => set({ diffView, transcript: null, pulseOpen: false }),
   closeDiff: () => set({ diffView: null }),
   settingsOpen: false,
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
@@ -915,6 +984,25 @@ export const useApp = create<AppState>((set, get) => ({
   setSearchOpen: (searchOpen) => set({ searchOpen }),
   paletteOpen: false,
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  shortcutsOpen: false,
+  setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+  toggleSidebar: () => {
+    const { settings } = get();
+    get().updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed });
+  },
+
+  // --- window pin ---
+  alwaysOnTop: false,
+  toggleAlwaysOnTop: () => {
+    const next = !get().alwaysOnTop;
+    getCurrentWindow()
+      .setAlwaysOnTop(next)
+      .then(() => {
+        set({ alwaysOnTop: next });
+        get().pushToast(next ? "Pinned — buddy stays above other windows" : "Unpinned");
+      })
+      .catch((e) => get().pushToast(errorMessage(e), "error"));
+  },
 
   // --- backup ---
   exportBackup: async () => {

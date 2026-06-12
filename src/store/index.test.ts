@@ -15,7 +15,10 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({ requestUserAttention: vi.fn(async () => {}) }),
+  getCurrentWindow: () => ({
+    requestUserAttention: vi.fn(async () => {}),
+    setAlwaysOnTop: vi.fn(async () => {}),
+  }),
   UserAttentionType: { Critical: 1, Informational: 2 },
 }));
 
@@ -147,6 +150,56 @@ describe("launch & layout", () => {
     expect(useApp.getState().zoomedId).toBe(useApp.getState().activeId);
     useApp.getState().toggleZoom();
     expect(useApp.getState().zoomedId).toBeNull();
+  });
+});
+
+describe("session order, cycling & window pin", () => {
+  it("cycleSession wraps both ways and lands on the cli view", () => {
+    useApp.getState().launch({ cli: "claude" });
+    useApp.getState().launch({ cli: "codex" });
+    useApp.getState().launch({ cli: "gemini" });
+    const [a, b, c] = useApp.getState().sessions.map((s) => s.id);
+    expect(useApp.getState().activeId).toBe(c);
+
+    useApp.setState({ view: "chat" });
+    useApp.getState().cycleSession(1); // wraps c → a
+    expect(useApp.getState().activeId).toBe(a);
+    expect(useApp.getState().view).toBe("cli");
+
+    useApp.getState().cycleSession(-1); // back around a → c
+    expect(useApp.getState().activeId).toBe(c);
+    useApp.getState().cycleSession(-1);
+    expect(useApp.getState().activeId).toBe(b);
+  });
+
+  it("moveSession reorders, clamps, and ignores unknown ids", () => {
+    useApp.getState().launch({ cli: "claude" });
+    useApp.getState().launch({ cli: "codex" });
+    useApp.getState().launch({ cli: "gemini" });
+    const [a, b, c] = useApp.getState().sessions.map((s) => s.id);
+
+    useApp.getState().moveSession(c, 0);
+    expect(useApp.getState().sessions.map((s) => s.id)).toEqual([c, a, b]);
+
+    useApp.getState().moveSession(c, 99); // clamps to the end
+    expect(useApp.getState().sessions.map((s) => s.id)).toEqual([a, b, c]);
+
+    useApp.getState().moveSession("ghost", 0);
+    expect(useApp.getState().sessions.map((s) => s.id)).toEqual([a, b, c]);
+  });
+
+  it("toggleAlwaysOnTop flips the flag once the window call lands", async () => {
+    useApp.getState().toggleAlwaysOnTop();
+    await vi.waitFor(() => expect(useApp.getState().alwaysOnTop).toBe(true));
+    useApp.getState().toggleAlwaysOnTop();
+    await vi.waitFor(() => expect(useApp.getState().alwaysOnTop).toBe(false));
+  });
+
+  it("toggleSidebar persists through settings", () => {
+    expect(useApp.getState().settings.sidebarCollapsed).toBe(false);
+    useApp.getState().toggleSidebar();
+    expect(useApp.getState().settings.sidebarCollapsed).toBe(true);
+    expect(JSON.parse(localStorage.getItem("buddy-settings")!).sidebarCollapsed).toBe(true);
   });
 });
 
@@ -292,6 +345,60 @@ describe("activity & broadcast", () => {
     const writes = callsTo("write_terminal");
     expect(writes).toHaveLength(1);
     expect(writes[0].id).toBe("pty-a");
+  });
+});
+
+describe("pulse & attention jumps", () => {
+  it("jumpToAttention with nobody waiting just toasts", () => {
+    useApp.getState().launch({ cli: "claude" });
+    useApp.getState().jumpToAttention();
+    const s = useApp.getState();
+    expect(s.toasts.some((t) => t.message.includes("No agent"))).toBe(true);
+    expect(s.activeId).toBe(s.sessions[0].id);
+  });
+
+  it("jumpToAttention cycles through waiting sessions, acknowledging each", () => {
+    useApp.getState().launch({ cli: "claude" });
+    const a = useApp.getState().sessions[0].id;
+    useApp.getState().launch({ cli: "codex" });
+    const b = useApp.getState().sessions[1].id;
+    useApp.getState().launch({ cli: "gemini" });
+    const c = useApp.getState().sessions[2].id; // active
+    useApp.setState({ activity: { [a]: "attention", [b]: "attention" } });
+
+    useApp.getState().jumpToAttention(); // wraps past c → a
+    expect(useApp.getState().activeId).toBe(a);
+    expect(useApp.getState().activity[a]).toBeUndefined(); // visiting acked it
+
+    useApp.getState().jumpToAttention();
+    expect(useApp.getState().activeId).toBe(b);
+
+    useApp.getState().jumpToAttention(); // nobody left
+    expect(useApp.getState().activeId).toBe(b);
+    expect(c).not.toBe(useApp.getState().activeId);
+  });
+
+  it("jumping closes the Pulse overlay and lands on the cli view", () => {
+    useApp.getState().launch({ cli: "claude" });
+    useApp.getState().launch({ cli: "codex" });
+    const a = useApp.getState().sessions[0].id;
+    useApp.setState({
+      activity: { [a]: "attention" },
+      pulseOpen: true,
+      view: "chat",
+    });
+
+    useApp.getState().jumpToAttention();
+    const s = useApp.getState();
+    expect(s.activeId).toBe(a);
+    expect(s.pulseOpen).toBe(false); // selectSession closes the overlay
+    expect(s.view).toBe("cli");
+  });
+
+  it("launching a session closes the Pulse overlay", () => {
+    useApp.setState({ pulseOpen: true });
+    useApp.getState().launch({ cli: "claude" });
+    expect(useApp.getState().pulseOpen).toBe(false);
   });
 });
 

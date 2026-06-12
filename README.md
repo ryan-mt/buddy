@@ -25,9 +25,10 @@ real PTY terminals via `portable-pty` (ConPTY on Windows) rendered with
   mounted (PTY-safe) and are just repositioned.
 - **Find in terminal.** Search the scrollback of any session
   (`Ctrl/Cmd+Shift+F`, Enter / Shift+Enter to step through matches).
-- **Session care.** Rename sessions in place (double-click the title), and a
-  confirmation guards closing a session that's still running. Failed actions
-  surface as toasts instead of failing silently.
+- **Session care.** Rename sessions in place (double-click the title), drag
+  rows to reorder the sidebar (the order drives `Ctrl/Cmd+Shift+1…9` and
+  cycling), and a confirmation guards closing a session that's still running.
+  Failed actions surface as toasts instead of failing silently.
 - **Crash-proof workspace.** The open sessions + split layout are snapshotted
   on every change; after a restart or crash buddy offers to restore the whole
   workspace (Claude sessions resume their conversation). A pane whose process
@@ -37,6 +38,28 @@ real PTY terminals via `portable-pty` (ConPTY on Windows) rendered with
   a static lit halo while it streams output, a warning ring when it rang the
   bell for input (permission prompts). When buddy is in the background, the
   Windows taskbar flashes for needs-input and for long runs finishing.
+- **Pulse — every agent at a glance.** `Ctrl/Cmd+Shift+O` opens a
+  mission-control board: one card per session with a live tail of its
+  terminal, a two-minute output heartbeat, its state (needs you / working /
+  quiet / exited), uptime and queued prompts. Waiting agents sort first;
+  click a card to jump in. Exited cards offer Resume/Relaunch right there.
+- **Agent dock.** A floating strip along the bottom with one live chip per
+  session — status, name, heartbeat, queued count. It stays with you in the
+  editor and overlays too, so any agent is one click away; it also carries
+  the “N waiting” jump, the Pulse board, and new-session.
+- **Jump to who needs you.** `Ctrl/Cmd+Shift+A` (or the “N waiting” chip in
+  the header and dock) cycles through the agents waiting on input,
+  acknowledging each as you visit it. `Ctrl/Cmd+Shift+]` / `+[` step to the
+  next / previous session without leaving the keyboard.
+- **Sidebar rail.** `Ctrl/Cmd+Shift+S` collapses the sidebar to a narrow icon
+  rail — views, one chip per live session (agent mark + status dot), new
+  session, Pulse — for maximum terminal room.
+- **Pin on top.** The header pushpin keeps buddy above every other window —
+  watch your agents while you work elsewhere.
+- **Shortcut cheatsheet.** `Ctrl/Cmd+Shift+/` overlays every binding, grouped
+  and searchable from the palette too.
+- **Hover peek.** Rest the cursor on a session in the sidebar to see a live
+  snippet of its terminal without switching panes.
 - **Formations.** Save the current split — which CLIs, in which panes, with
   which cwd / model / profile — as a named preset, and relaunch the whole
   squad in one click.
@@ -74,10 +97,13 @@ real PTY terminals via `portable-pty` (ConPTY on Windows) rendered with
 - **Settings & shortcuts.** Theme, terminal font size, default Claude
   permission / effort. Global shortcuts: `Ctrl/Cmd+Shift+K` command palette,
   `+T` new session, `+W` close, `+F` find, `+Z` zoom pane, `+B` broadcast,
-  `+P` composer, `+1…9` switch, `+,` settings.
+  `+P` composer, `+1…9` switch, `+]`/`+[` next/previous session, `+S` sidebar
+  rail, `+/` shortcut cheatsheet, `+,` settings.
 - **Liquid-glass UI.** Warm, organic palette with frosted-glass chrome
-  (sidebar, header, dialogs) over an ambient color mesh. Status is shown with
-  static glows and rings — nothing blinks.
+  (sidebar, header, dialogs) over an ambient color mesh, a display typeface
+  (Bricolage Grotesque) for brand moments, and a cursor-tracked sheen on glass
+  cards. Keyboard focus is always visible; controls give physically on press.
+  Status is shown with static glows and rings — nothing blinks.
 
 ## Develop
 

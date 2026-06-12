@@ -42,6 +42,8 @@
 
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  /* Display voice — brand moments only (wordmark, overlay titles, empty states). */
+  --font-display: "Bricolage Grotesque Variable", "IBM Plex Sans", ui-sans-serif, sans-serif;
 
   /* Organic motion — long settle, no bounce. */
   --ease-natural: cubic-bezier(0.22, 1, 0.36, 1);
@@ -381,7 +383,8 @@ body::before {
   background:
     radial-gradient(38% 34% at 16% 6%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 62%),
     radial-gradient(32% 38% at 88% 10%, color-mix(in srgb, var(--color-claude) 16%, transparent), transparent 60%),
-    radial-gradient(44% 44% at 72% 94%, color-mix(in srgb, var(--color-gemini) 12%, transparent), transparent 65%);
+    radial-gradient(44% 44% at 72% 94%, color-mix(in srgb, var(--color-gemini) 12%, transparent), transparent 65%),
+    radial-gradient(36% 40% at 6% 86%, color-mix(in srgb, var(--color-codex) 10%, transparent), transparent 60%);
 }
 
 /* Liquid-glass surfaces: frosted translucency, a specular top edge, soft sheen.
@@ -417,7 +420,60 @@ button,
   transition:
     background-color 180ms ease,
     border-color 180ms ease,
-    color 180ms ease;
+    color 180ms ease,
+    transform 130ms var(--ease-natural);
+}
+
+/* Every control answers the press — a small physical give. */
+button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Keyboard focus is always visible (never on the terminal's hidden textarea). */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 65%, transparent);
+  outline-offset: 1px;
+}
+.xterm textarea:focus-visible {
+  outline: none;
+}
+
+/* Cursor-tracked sheen on glass cards — the light bends where you point.
+   Position is fed by trackSpotlight (lib/spotlight.ts) via --spot-x/--spot-y. */
+.glass-spot {
+  position: relative;
+}
+.glass-spot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background: radial-gradient(
+    190px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--glass-highlight) 60%, transparent),
+    transparent 70%
+  );
+}
+.glass-spot:hover::after {
+  opacity: 1;
+}
+
+/* One-shot entry: content settles up into place (stagger with animation-delay). */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 320ms var(--ease-natural) both;
 }
 
 /* Thin, unobtrusive scrollbars. */
